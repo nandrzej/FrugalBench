@@ -39,6 +39,6 @@ venv.bak/
 
 # Project specific
 logs/
-data/server.log
+# data/server.log (tracked)
 test_output.log
 .inspect/

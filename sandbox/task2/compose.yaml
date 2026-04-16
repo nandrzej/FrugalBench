@@ -1,0 +1,7 @@
+services:
+  default:
+    build:
+      context: ../..
+      dockerfile: sandbox/task2/Dockerfile
+    command: tail -f /dev/null
+    init: true

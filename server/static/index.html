@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspect AI Evaluation Reports</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <div id="app" x-data="reportViewer()">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>Inspect AI Evaluation Reports</h1>
+                <button class="btn-summary" :class="{ 'active': dashboardActive }" @click="showDashboard()">
+                    Summary Dashboard
+                </button>
+            </div>
+            <div class="header-stats" x-show="selectedReport && !dashboardActive">
+                <span x-text="`${evaluations.length} tasks`"></span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Report List Sidebar -->
+            <aside class="sidebar">
+                <h2>Reports</h2>
+                <div class="tree-container">
+                    <template x-for="node in reportTree" :key="node.id">
+                        <div class="tree-node">
+                            <div class="tree-row" @click="node.expanded = !node.expanded">
+                                <span class="tree-icon" x-text="node.expanded ? '▼' : '▶'" x-show="node.children && node.children.length > 0"></span>
+                                <span class="tree-label" x-text="node.name"></span>
+                            </div>
+                            <div class="tree-children" x-show="node.expanded">
+                                <template x-for="child in node.children" :key="child.id">
+                                    <div class="tree-node">
+                                        <template x-if="child.type !== 'report'">
+                                            <div>
+                                                <div class="tree-row depth-1" @click="child.expanded = !child.expanded">
+                                                    <span class="tree-icon" x-text="child.expanded ? '▼' : '▶'" x-show="child.children && child.children.length > 0"></span>
+                                                    <span class="tree-label" x-text="child.name"></span>
+                                                </div>
+                                                <div class="tree-children" x-show="child.expanded">
+                                                    <template x-for="grandchild in child.children" :key="grandchild.id">
+                                                        <div class="tree-node">
+                                                            <template x-if="grandchild.type !== 'report'">
+                                                                <div>
+                                                                    <div class="tree-row depth-2" @click="grandchild.expanded = !grandchild.expanded">
+                                                                        <span class="tree-icon" x-text="grandchild.expanded ? '▼' : '▶'" x-show="grandchild.children && grandchild.children.length > 0"></span>
+                                                                        <span class="tree-label" x-text="grandchild.name"></span>
+                                                                    </div>
+                                                                    <div class="tree-children" x-show="grandchild.expanded">
+                                                                        <template x-for="report in grandchild.children" :key="report.filename">
+                                                                            <div 
+                                                                                class="report-card depth-3"
+                                                                                :class="{ 'selected': selectedReport === report.filename && !dashboardActive }"
+                                                                                @click="loadReport(report.filename)"
+                                                                            >
+                                                                                <div class="report-meta">
+                                                                                    <div class="report-date" x-text="formatDateShort(report.generated_at)"></div><div class="report-id" x-text="report.filename.split('_')[2]" style="font-size: 0.75rem; color: #666; margin: 2px 0;"></div>
+                                                                                    <div class="report-count" x-text="`${report.total_evaluations} tasks`"></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                            <template x-if="grandchild.type === 'report'">
+                                                                <div 
+                                                                    class="report-card depth-2"
+                                                                    :class="{ 'selected': selectedReport === grandchild.filename && !dashboardActive }"
+                                                                    @click="loadReport(grandchild.filename)"
+                                                                >
+                                                                    <div class="report-meta">
+                                                                        <div class="report-date" x-text="formatDateShort(grandchild.generated_at)"></div><div class="report-id" x-text="grandchild.filename.split('_')[2]" style="font-size: 0.75rem; color: #666; margin: 2px 0;"></div>
+                                                                        <div class="report-count" x-text="`${grandchild.total_evaluations} tasks`"></div>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <template x-if="child.type === 'report'">
+                                            <div 
+                                                class="report-card depth-1"
+                                                :class="{ 'selected': selectedReport === child.filename && !dashboardActive }"
+                                                @click="loadReport(child.filename)"
+                                            >
+                                                <div class="report-meta">
+                                                    <div class="report-date" x-text="formatDateShort(child.generated_at)"></div><div class="report-id" x-text="child.filename.split('_')[2]" style="font-size: 0.75rem; color: #666; margin: 2px 0;"></div>
+                                                    <div class="report-count" x-text="`${child.total_evaluations} tasks`"></div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </aside>
+
+            <!-- Summary Dashboard -->
+            <section class="detail-view" x-show="dashboardActive">
+                <h2>Latest Results Summary</h2>
+                <div class="table-container">
+                    <table class="summary-table">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Provider</th>
+                                <th>Settings</th>
+                                <th>Last Run</th>
+                                <th>Tasks</th>
+                                <th>Success Rate</th>
+                                <th>Avg Score</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="item in dashboardData" :key="item.filename">
+                                <tr>
+                                    <td x-text="item.model"></td>
+                                    <td x-text="item.provider"></td>
+                                    <td x-text="formatSettings(item.config)"></td>
+                                    <td x-text="formatDate(item.generated_at)"></td>
+                                    <td x-text="item.total_evaluations"></td>
+                                    <td>
+                                        <div class="progress-bar-bg">
+                                            <div class="progress-bar-fg" :style="`width: ${(item.success_count / item.total_evaluations * 100).toFixed(0)}%`"></div>
+                                        </div>
+                                        <span x-text="`${(item.success_count / item.total_evaluations * 100).toFixed(1)}%` "></span>
+                                    </td>
+                                    <td x-text="item.avg_score.toFixed(3)"></td>
+                                    <td>
+                                        <button class="btn-small" @click="loadReport(item.filename)">View Report</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Report Detail View -->
+            <section class="detail-view" x-show="selectedReport && !dashboardActive">
+                <div class="report-header">
+                    <h2 x-text="`Run: ${currentReport?.run_id || selectedReport}`"></h2>
+                    <div class="report-info">
+                        <span x-text="`Model: ${currentReport?.model}`"></span>
+                        <span x-text="`Provider: ${currentReport?.provider}`"></span>
+                        <span x-text="`Settings: ${formatSettings(currentReport?.config)}`"></span>
+                    </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="summary-stats" x-show="summary">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Tasks</div>
+                        <div class="stat-value" x-text="summary?.total_evaluations || 0"></div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-label">Success</div>
+                        <div class="stat-value" x-text="summary?.success_count || 0"></div>
+                    </div>
+                    <div class="stat-card error">
+                        <div class="stat-label">Errors</div>
+                        <div class="stat-value" x-text="summary?.error_count || 0"></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Score</div>
+                        <div class="stat-value" x-text="(summary?.avg_score || 0).toFixed(3)"></div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters">
+                    <div class="filter-group">
+                        <label>Task:</label>
+                        <select x-model="filters.task" @change="applyFilters()">
+                            <option value="">All Tasks</option>
+                            <template x-for="task in uniqueTasks" :key="task">
+                                <option :value="task" x-text="task"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Status:</label>
+                        <select x-model="filters.status" @change="applyFilters()">
+                            <option value="">All Statuses</option>
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Search:</label>
+                        <input 
+                            type="text" 
+                            x-model="filters.search" 
+                            @input="applyFilters()"
+                            placeholder="Search task, model, or log file..."
+                        >
+                    </div>
+                </div>
+
+                <!-- Evaluations Table -->
+                <div class="table-container">
+                    <table class="evaluations-table">
+                        <thead>
+                            <tr>
+                                <th @click="sortBy('timestamp')" class="sortable">
+                                    Timestamp
+                                    <span x-show="sortField === 'timestamp'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                                </th>
+                                <th @click="sortBy('task')" class="sortable">
+                                    Task
+                                    <span x-show="sortField === 'task'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                                </th>
+                                <th @click="sortBy('status')" class="sortable">
+                                    Status
+                                    <span x-show="sortField === 'status'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                                </th>
+                                <th>Scorer</th>
+                                <th @click="sortBy('value')" class="sortable">
+                                    Value
+                                    <span x-show="sortField === 'value'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                                </th>
+                                <th>Stderr</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="eval in filteredEvaluations" :key="eval.log_file">
+                                <tr :class="eval.status">
+                                    <td x-text="formatDate(eval.timestamp)"></td>
+                                    <td x-text="eval.task"></td>
+                                    <td>
+                                        <span class="status-badge" :class="eval.status" x-text="eval.status"></span>
+                                    </td>
+                                    <td x-text="Object.keys(eval.metrics || {}).join(', ') || '-'"></td>
+                                    <td x-text="getMetricValue(eval)"></td>
+                                    <td x-text="getMetricStderr(eval)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- No Results -->
+                <div class="no-results" x-show="filteredEvaluations.length === 0">
+                    <p>No evaluations match your filters.</p>
+                </div>
+            </section>
+
+            <!-- Empty State -->
+            <section class="empty-state" x-show="!selectedReport && !dashboardActive">
+                <div class="empty-message">
+                    <p>Select a report from the sidebar or view the Summary Dashboard</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function reportViewer() {
+            return {
+                reports: [],
+                selectedReport: null,
+                currentReport: null,
+                evaluations: [],
+                summary: null,
+                dashboardActive: true,
+                filters: {
+                    task: '',
+                    status: '',
+                    search: ''
+                },
+                sortField: 'timestamp',
+                sortDirection: 'desc',
+                reportTree: [],
+
+                async init() {
+                    await this.loadReports();
+                },
+
+                async loadReports() {
+                    try {
+                        const response = await fetch('/api/reports');
+                        this.reports = await response.json();
+                        this.buildReportTree();
+                    } catch (error) {
+                        console.error('Failed to load reports:', error);
+                    }
+                },
+
+                showDashboard() {
+                    this.dashboardActive = true;
+                    this.selectedReport = null;
+                },
+
+                async loadReport(filename) {
+                    try {
+                        this.dashboardActive = false;
+                        // Load full report
+                        const reportResponse = await fetch(`/api/reports/${filename}`);
+                        const reportData = await reportResponse.json();
+                        this.currentReport = reportData;
+                        this.evaluations = reportData.evaluations || [];
+                        this.selectedReport = filename;
+
+                        // Load summary
+                        const summaryResponse = await fetch(`/api/reports/${filename}/summary`);
+                        this.summary = await summaryResponse.json();
+
+                        // Apply initial sorting
+                        this.applyFilters();
+                    } catch (error) {
+                        console.error('Failed to load report:', error);
+                    }
+                },
+
+                buildReportTree() {
+                    const tree = {};
+                    this.reports.forEach(report => {
+                        const model = report.model || 'Unknown Model';
+                        const provider = report.provider || 'Unknown Provider';
+                        const settings = this.formatSettings(report.config);
+                        
+                        if (!tree[model]) tree[model] = { name: model, children: {}, type: 'model', expanded: true, id: `model-${model}` };
+                        if (!tree[model].children[provider]) tree[model].children[provider] = { name: provider, children: {}, type: 'provider', expanded: true, id: `provider-${model}-${provider}` };
+                        if (!tree[model].children[provider].children[settings]) tree[model].children[provider].children[settings] = { name: settings, children: [], type: 'settings', expanded: true, id: `settings-${model}-${provider}-${settings}` };
+                        
+                        tree[model].children[provider].children[settings].children.push({
+                            ...report,
+                            type: 'report',
+                            id: report.filename
+                        });
+                    });
+
+                    // Convert to array and compact
+                    this.reportTree = this.compactTree(Object.values(tree));
+                },
+
+                compactTree(nodes) {
+                    return nodes.map(node => {
+                        // If node has exactly one child that is not a report, compact it
+                        if (node.children && !Array.isArray(node.children)) {
+                            const childKeys = Object.keys(node.children);
+                            if (childKeys.length === 1) {
+                                const child = node.children[childKeys[0]];
+                                const combinedNode = {
+                                    ...child,
+                                    name: `${node.name} / ${child.name}`,
+                                    id: `${node.id}-${child.id}`,
+                                    expanded: node.expanded && child.expanded
+                                };
+                                return this.compactTree([combinedNode])[0];
+                            } else {
+                                node.children = this.compactTree(Object.values(node.children));
+                            }
+                        } else if (Array.isArray(node.children)) {
+                            // Sort reports by date descending
+                            node.children.sort((a, b) => b.generated_at.localeCompare(a.generated_at));
+                        }
+                        return node;
+                    });
+                },
+
+                get dashboardData() {
+                    const groups = {};
+                    this.reports.forEach(report => {
+                        const settingsStr = this.formatSettings(report.config);
+                        const key = `${report.model}|${report.provider}|${settingsStr}`;
+                        if (!groups[key] || new Date(report.generated_at) > new Date(groups[key].generated_at)) {
+                            groups[key] = report;
+                        }
+                    });
+                    return Object.values(groups).sort((a, b) => b.generated_at.localeCompare(a.generated_at));
+                },
+
+                formatSettings(config) {
+                    if (!config || config === 'Default Settings') return 'Default Settings';
+                    if (typeof config === 'string') return config;
+                    return Object.entries(config)
+                        .map(([k, v]) => `${k}=${v}`)
+                        .join(', ');
+                },
+
+                get uniqueTasks() {
+                    return [...new Set(this.evaluations.map(e => e.task))].sort();
+                },
+
+                get filteredEvaluations() {
+                    let filtered = [...this.evaluations];
+
+                    // Apply filters
+                    if (this.filters.task) {
+                        filtered = filtered.filter(e => e.task === this.filters.task);
+                    }
+                    if (this.filters.status) {
+                        filtered = filtered.filter(e => e.status === this.filters.status);
+                    }
+                    if (this.filters.search) {
+                        const search = this.filters.search.toLowerCase();
+                        filtered = filtered.filter(e => 
+                            e.task.toLowerCase().includes(search) ||
+                            (e.log_file || '').toLowerCase().includes(search)
+                        );
+                    }
+
+                    // Apply sorting
+                    filtered.sort((a, b) => {
+                        let aVal = a[this.sortField];
+                        let bVal = b[this.sortField];
+
+                        // Handle nested values
+                        if (this.sortField === 'value') {
+                            aVal = this.getMetricValue(a);
+                            bVal = this.getMetricValue(b);
+                            aVal = aVal === '-' ? -Infinity : parseFloat(aVal);
+                            bVal = bVal === '-' ? -Infinity : parseFloat(bVal);
+                        }
+
+                        if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
+                        if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+
+                    return filtered;
+                },
+
+                applyFilters() {
+                    // Triggers reactive update via filteredEvaluations getter
+                },
+
+                sortBy(field) {
+                    if (this.sortField === field) {
+                        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortField = field;
+                        this.sortDirection = 'asc';
+                    }
+                },
+
+                getMetricValue(eval) {
+                    const metrics = eval.metrics || {};
+                    const firstMetric = Object.values(metrics)[0];
+                    return firstMetric?.value !== undefined ? firstMetric.value.toFixed(3) : '-';
+                },
+
+                getMetricStderr(eval) {
+                    const metrics = eval.metrics || {};
+                    const firstMetric = Object.values(metrics)[0];
+                    return firstMetric?.stderr !== undefined ? `±${firstMetric.stderr.toFixed(3)}` : '-';
+                },
+
+                formatDate(dateString) {
+                    if (!dateString) return '-';
+                    const date = new Date(dateString);
+                    return date.toLocaleString();
+                },
+
+                formatDateShort(dateString) {
+                    if (!dateString) return '-';
+                    const date = new Date(dateString);
+                    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                }
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+[project]
+name = "hrnss"
+version = "0.1.0"
+description = "8B Deterministic Benchmark — Inspect AI evaluation suite"
+requires-python = ">=3.14"
+dependencies = [
+    "inspect-ai>=0.3.0",
+    "pandas",
+    "python-dotenv",
+    "nltk",
+    "sentence-transformers",
+    "jsonschema",
+    "openai",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["dataset"]
+packages = ["tasks", "scorers"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # Conflicting docstring style rules — keep Google (D203, D213)
+    "D211",  # no-blank-line-before-class
+    "D212",  # multi-line-summary-first-line
+    # D203 one-blank-line-before-class (kept)
+    # D213 multi-line-summary-second-line (kept)
+
+    # Allow common practical patterns
+    "ANN401",  # dynamically-typed expressions (Any)
+    "TD002",   # missing author in TODO
+    "TD003",   # missing issue link in TODO
+    "FIX002",  # line contains TODO
+    "COM812",  # trailing comma (conflicts with ruff format)
+    "ISC001",  # single-line implicit string concatenation (conflicts with ruff format)
+
+    # Allow imports not at top-level (dynamic imports in helpers, nltk, test fixtures)
+    "E402",    # module-level imports not at top of file
+    "PLC0415", # import should be at top-level of a file
+
+    # Allow type-checking block violations (TaskState used at runtime in scorers)
+    "TC002",   # move third-party import into type-checking block
+
+    # Allow mutable class defaults in tests
+    "RUF012",  # mutable class attributes should be annotated with typing.ClassVar
+
+    # Allow implicit optional (None-returning functions)
+    "RUF013",  # implicit optional
+
+    # Allow bare except in error handling
+    "BLE001",  # blind exception
+
+    # Allow subprocess without full path
+    "S603",    # subprocess without shell=True
+    "S607",    # partial executable path
+
+    # Allow magic values
+    "PLR2004", # magic value comparison
+
+    # Allow f-string exceptions (simple cases)
+    "EM101",   # exception must not use string literal
+    "EM102",   # exception must not use f-string literal
+
+    # Allow long exception messages
+    "TRY003",  # avoid long messages outside exception class
+
+    # Allow unnecessary variable (used for clarity)
+    "RET504",  # unnecessary assignment before return
+
+    # Allow pathlib open (not preferring Path.open)
+    "PTH123",  # builtin open
+
+    # Allow subprocess.run without check
+    "PLW1510", # subprocess run without check
+
+    # Allow nested if
+    "SIM102",  # nested if statements
+
+    # Allow list comprehension over map
+    "PERF401", # use list comprehension
+
+    # Allow missing return type annotations
+    "ANN201",  # missing return type annotation for public function
+    "ANN202",  # missing return type annotation for private function
+
+    # Allow shadowed imports
+    "F811",    # redefined unused name from import
+
+    # Allow non-abstract abstract methods
+    "B024",    # abstract base class without abstract methods
+
+    # Allow missing docstrings in __init__
+    "D107",    # missing docstring in __init__
+
+    # Allow unused arguments (decorators, protocols)
+    "ARG001",  # unused function argument
+    "ARG002",  # unused method argument
+    "ARG005",  # unused lambda argument
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",    # assert used in tests
+    "ANN",     # type annotations not required in tests
+    "D",       # docstrings not required in tests
+    "PLR0913", # too many arguments in test functions
+    "PLR0917", # too many positional arguments
+    "SLF001",  # private member access in tests
+    "N801",    # class name convention (TestTask_X style)
+    "E501",    # long lines in test data/fixtures
+    "A002",    # shadowing builtins in test fixtures
+    "F841",    # unused variables in test exploration
+    "B004",    # hasattr __call__ pattern in tests
+]
+"tasks/**" = [
+    "D103",    # missing docstring in public function (task functions)
+    "S101",    # assert used for sandbox check
+]
+"scorers/**" = [
+    "D103",    # missing docstring in public function (scorer functions)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+disallow_subclassing_any = true
+disallow_any_unimported = true
+disallow_any_explicit = true
+disallow_any_generics = true
+disallow_any_decorated = false
+ignore_missing_imports = true
+exclude = [
+    ".venv",
+    "__pycache__",
+    "tests",
+]

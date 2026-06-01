@@ -97,6 +97,39 @@ class TestGetSampleReturnsValidSample:
         assert sample.target == "UNANSWERABLE"
 
 
+class TestTask8Balance:
+    """Task 8 must have both answerable and unanswerable samples."""
+
+    def test_has_answerable_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(8)
+        answerable = [s for s in samples if s.target != "UNANSWERABLE"]
+        assert len(answerable) > 0, "Task 8 must have answerable samples"
+
+    def test_has_unanswerable_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(8)
+        unanswerable = [s for s in samples if s.target == "UNANSWERABLE"]
+        assert len(unanswerable) > 0, "Task 8 must have unanswerable samples"
+
+    def test_approximately_balanced(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(8)
+        total = len(samples)
+        answerable = len([s for s in samples if s.target != "UNANSWERABLE"])
+        ratio = answerable / total
+        assert 0.3 <= ratio <= 0.7, f"Task 8 balance is {ratio:.1%} answerable, expected ~50%"
+
+    def test_minimum_sample_count(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(8)
+        assert len(samples) >= 20
+
+
 class TestTask9TargetExtraction:
     """Observable: Task 9 target is extracted from <total>N</total> format."""
 

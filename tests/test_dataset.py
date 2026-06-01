@@ -187,6 +187,36 @@ class TestTask5Diversity:
         assert len(set(inputs)) == len(inputs), "Task 5 inputs must be unique"
 
 
+class TestTask9Tiers:
+    """Task 9 must have tiered difficulty with decimal support."""
+
+    def test_minimum_40_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(9)
+        assert len(samples) >= 40
+
+    def test_has_decimal_targets(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(9)
+        decimal_targets = [s for s in samples if "." in s.target]
+        assert len(decimal_targets) >= 10, "Task 9 must have decimal targets for medium/hard tiers"
+
+    def test_all_targets_are_numeric(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(9)
+        for sample in samples:
+            target = sample.target
+            try:
+                float(target)
+            except ValueError:
+                raise AssertionError(
+                    f"Task 9 target is not numeric: '{target}' (input: {sample.input[:50]}...)"
+                )
+
+
 class TestTask9TargetExtraction:
     """Observable: Task 9 target is extracted from <total>N</total> format."""
 

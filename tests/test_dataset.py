@@ -130,6 +130,39 @@ class TestTask8Balance:
         assert len(samples) >= 20
 
 
+class TestTask3ConstraintDiversity:
+    """Task 3 must have diverse constraint profiles."""
+
+    def test_minimum_15_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(3)
+        assert len(samples) >= 15
+
+    def test_targets_are_json(self) -> None:
+        import json
+
+        from dataset import get_samples
+
+        samples = get_samples(3)
+        for sample in samples:
+            parsed = json.loads(sample.target)
+            assert isinstance(parsed, dict), f"Target must be JSON dict: {sample.target}"
+
+    def test_diverse_constraint_profiles(self) -> None:
+        import json
+
+        from dataset import get_samples
+
+        samples = get_samples(3)
+        profiles = set()
+        for sample in samples:
+            parsed = json.loads(sample.target)
+            profile = tuple(sorted(parsed.keys()))
+            profiles.add(profile)
+        assert len(profiles) >= 4, f"Expected 4+ distinct constraint profiles, got {len(profiles)}"
+
+
 class TestTask5Diversity:
     """Task 5 must have structurally different puzzles."""
 

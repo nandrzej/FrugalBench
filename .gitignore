@@ -42,3 +42,4 @@ logs/
 # data/server.log (tracked)
 test_output.log
 .inspect/
+.worktrees/

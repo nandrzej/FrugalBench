@@ -20,6 +20,6 @@ def task11_logic_puzzle() -> Task:
         solver=generate(),
         # Expecting a clean YES or NO, possibly at the start of a reasoning line
         # but capturing the core answer
-        scorer=pattern(r"^(?:[\s\S]*?\b)?(YES|NO)\b", ignore_case=True),
+        scorer=pattern(r"\b(YES|NO|UNKNOWN)\b", ignore_case=True),
         config=GenerateConfig(temperature=0, seed=42),
     )

@@ -540,6 +540,40 @@ class TestTabularMathPatternScorer:
 
 
 # ============================================================================
+# Task 11: Logic Puzzle — Pattern scorer
+# ============================================================================
+
+
+class TestTask11LogicPattern:
+    """Observable behavior of task11 regex pattern."""
+
+    def _get_scorer(self):
+        mod = _import_task_module("task11_logic_puzzle")
+        return mod.task11_logic_puzzle().scorer[0]
+
+    def test_matches_yes(self, task_state):
+        """Observable: YES answer scores C."""
+        scorer = self._get_scorer()
+        state = task_state(output="The answer is YES", target="YES")
+        score = _run_scorer_instance(scorer, state, state.target.text)
+        assert score.value == "C"
+
+    def test_matches_no(self, task_state):
+        """Observable: NO answer scores C."""
+        scorer = self._get_scorer()
+        state = task_state(output="NO, that does not follow", target="NO")
+        score = _run_scorer_instance(scorer, state, state.target.text)
+        assert score.value == "C"
+
+    def test_matches_unknown(self, task_state):
+        """Observable: UNKNOWN answer is captured (needed for hard FOL samples)."""
+        scorer = self._get_scorer()
+        state = task_state(output="UNKNOWN - insufficient information", target="UNKNOWN")
+        score = _run_scorer_instance(scorer, state, state.target.text)
+        assert score.value == "C"
+
+
+# ============================================================================
 # Failure mode tests: all scorers should handle malformed input gracefully
 # ============================================================================
 

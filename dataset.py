@@ -31,7 +31,7 @@ def get_samples(task_id: int) -> list[Sample]:
         # Task 9: pattern scorer extracts digits from <total>N</total>
         # Target should be just the number for comparison
         if task_id == 9:
-            match = re.search(r"<total>(\d+)</total>", target_text)
+            match = re.search(r"<total>(\d+(?:\.\d+)?)</total>", target_text)
             if match:
                 target_text = match.group(1)
 

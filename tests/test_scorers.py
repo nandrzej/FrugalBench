@@ -538,6 +538,16 @@ class TestTabularMathPatternScorer:
         score = _run_scorer_instance(scorer, state, state.target.text)
         assert score.value == "I"
 
+    def test_decimal_total_scores_c(self, task_state):
+        """Observable: <total>31.5</total> matches decimal values → CORRECT."""
+        scorer = self._get_scorer()
+        state = task_state(
+            output="<total>31.5</total>",
+            target="31.5",
+        )
+        score = _run_scorer_instance(scorer, state, state.target.text)
+        assert score.value == "C"
+
 
 # ============================================================================
 # Task 11: Logic Puzzle — Pattern scorer

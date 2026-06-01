@@ -18,6 +18,6 @@ def task9_tabular_math() -> Task:
     return Task(
         dataset=_get_dataset(),
         solver=generate(),
-        scorer=pattern(r"<total>(\d+)</total>"),
+        scorer=pattern(r"<total>(\d+(?:\.\d+)?)</total>"),
         config=GenerateConfig(temperature=0, seed=42),
     )

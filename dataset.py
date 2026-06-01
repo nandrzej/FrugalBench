@@ -17,7 +17,7 @@ def _load_dataset():
 
 
 def get_samples(task_id: int) -> list[Sample]:
-    """Get all Samples for a given task number (1-12)."""
+    """Get all Samples for a given task number (1-14, 16)."""
     df = _load_dataset()
     rows = df[df["Task"].str.startswith(f"{task_id}.")]
     if rows.empty:
@@ -46,7 +46,7 @@ def get_samples(task_id: int) -> list[Sample]:
 
 
 def get_sample(task_id: int) -> Sample:
-    """Get a single Sample for a given task number (1-12).
+    """Get a single Sample for a given task number (1-14, 16).
 
     Returns the first sample. Use get_samples() for all samples.
     """

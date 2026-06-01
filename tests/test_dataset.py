@@ -14,15 +14,17 @@ from inspect_ai.dataset import Sample
 class TestGetSampleReturnsValidSample:
     """Observable: get_sample returns a Sample with required fields."""
 
-    @pytest.mark.parametrize("task_id", range(1, 13))
+    TASK_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]
+
+    @pytest.mark.parametrize("task_id", TASK_IDS)
     def test_get_sample_returns_sample_for_all_tasks(self, task_id):
-        """Observable: every task (1-12) produces a Sample."""
+        """Observable: every task produces a Sample."""
         from dataset import get_sample
 
         result = get_sample(task_id)
         assert isinstance(result, Sample), f"get_sample({task_id}) did not return a Sample"
 
-    @pytest.mark.parametrize("task_id", range(1, 13))
+    @pytest.mark.parametrize("task_id", TASK_IDS)
     def test_sample_has_non_empty_input(self, task_id):
         """Observable: each Sample has a non-empty input."""
         from dataset import get_sample
@@ -31,7 +33,7 @@ class TestGetSampleReturnsValidSample:
         assert sample.input, f"Task {task_id}: input is empty"
         assert isinstance(sample.input, str), f"Task {task_id}: input is not a string"
 
-    @pytest.mark.parametrize("task_id", range(1, 13))
+    @pytest.mark.parametrize("task_id", TASK_IDS)
     def test_sample_has_non_empty_target(self, task_id):
         """Observable: each Sample has a non-empty target."""
         from dataset import get_sample
@@ -39,7 +41,7 @@ class TestGetSampleReturnsValidSample:
         sample = get_sample(task_id)
         assert sample.target, f"Task {task_id}: target is empty"
 
-    @pytest.mark.parametrize("task_id", range(1, 13))
+    @pytest.mark.parametrize("task_id", TASK_IDS)
     def test_sample_id_matches_task_id(self, task_id):
         """Observable: sample.id is set and starts with the task number."""
         from dataset import get_sample

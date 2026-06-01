@@ -50,8 +50,8 @@ def agentic_scorer() -> Scorer:
 def _agentic_solver() -> Solver:
     """Create a ReAct agent with bash tool and 6-message limit."""
     prompt = (
-        "You have bash access to the filesystem. Explore the workspace, find hints, "
-        "decode the user ID, and write the final password to final_answer.txt. "
+        "You have bash access to a sandboxed filesystem. Follow the instructions "
+        "provided to solve the puzzle. Write your final answer to final_answer.txt. "
         "You have a maximum of 6 turns."
     )
     agent_instance = react(

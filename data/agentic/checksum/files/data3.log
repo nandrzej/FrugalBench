@@ -1,0 +1,4 @@
+2025-01-15 08:00:01 INFO Server started on port 8080
+2025-01-15 08:05:23 WARN High memory usage detected: 85%
+2025-01-15 08:10:45 ERROR Connection timeout to database
+2025-01-15 08:15:00 INFO Retry successful

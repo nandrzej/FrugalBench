@@ -130,6 +130,30 @@ class TestTask8Balance:
         assert len(samples) >= 20
 
 
+class TestTask5Diversity:
+    """Task 5 must have structurally different puzzles."""
+
+    def test_minimum_three_puzzles(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(5)
+        assert len(samples) >= 3
+
+    def test_targets_are_different(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(5)
+        targets = [s.target for s in samples]
+        assert len(set(targets)) >= 3, "Task 5 samples must have different answers"
+
+    def test_inputs_are_different(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(5)
+        inputs = [s.input for s in samples]
+        assert len(set(inputs)) == len(inputs), "Task 5 inputs must be unique"
+
+
 class TestTask9TargetExtraction:
     """Observable: Task 9 target is extracted from <total>N</total> format."""
 

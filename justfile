@@ -39,3 +39,11 @@ report:
 # Serve HTML report viewer (FastAPI + static files)
 serve:
     uv run uvicorn server.main:app --reload --port 8000
+
+# Run all evaluations across multiple models (set INSPECT_MODELS in .env)
+eval-all-multi:
+    . .env && for model in $$INSPECT_MODELS; do \
+        echo "=== Evaluating with model: $$model ==="; \
+        INSPECT_MODEL="$$model" uv run inspect eval tasks/task*.py --model "$$model" || echo "Model $$model: FAILED"; \
+        echo ""; \
+    done

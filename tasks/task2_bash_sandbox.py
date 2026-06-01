@@ -40,7 +40,7 @@ def bash_log_analyzer() -> Solver:
         # Write and execute in sandbox
         sb = sandbox()
         await sb.write_file("/workspace/analyze.sh", script)
-        await sb.exec(["bash", "/workspace/analyze.sh"])
+        await sb.exec(["bash", "/workspace/analyze.sh"], timeout=30)
 
         # Read the generated report
         try:

@@ -5,3 +5,14 @@ services:
       dockerfile: sandbox/task5/Dockerfile
     command: tail -f /dev/null
     init: true
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M

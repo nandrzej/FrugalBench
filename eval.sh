@@ -26,11 +26,11 @@ run_task() {
 declare -A RESULTS
 
 if [ "$1" = "all" ] || [ -z "$1" ]; then
-    for i in 1 2 3 4 5 6 7 8 9; do
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 16; do
         run_task $i
     done
     echo "=== Summary ==="
-    for i in 1 2 3 4 5 6 7 8 9; do
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 16; do
         echo "Task $i: ${RESULTS[$i]}"
     done
 else

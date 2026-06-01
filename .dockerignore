@@ -1,0 +1,47 @@
+# Secrets and environment
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+env/
+
+# Python caches and artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+*.egg
+
+# Test, lint, type caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.inspect/
+.coverage
+htmlcov/
+
+# Project metadata / IDE / docs
+.git/
+.gitignore
+.github/
+.vscode/
+.idea/
+*.swp
+*.swo
+.qwen/
+
+# Test and documentation artifacts
+tests/
+docs/
+README.md
+IMPROVEMENT_PLAN.md
+REVIEW.md
+PLAN.md
+
+# Runtime artifacts
+logs/
+results/
+test_output.log

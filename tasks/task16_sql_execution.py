@@ -47,10 +47,11 @@ def sql_scorer() -> Scorer:
 
         passed = False
         try:
-            if "." in expected:
-                passed = abs(float(output) - float(expected)) < 0.001
-            else:
-                passed = output == expected
+            passed = (
+                abs(float(output) - float(expected)) < 0.001
+                if "." in expected
+                else output == expected
+            )
         except ValueError:
             passed = False
 

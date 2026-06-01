@@ -273,6 +273,7 @@ class TestTask9EndToEnd:
 class TestTask10EndToEnd:
     """Task 10: Code Debugging."""
 
+    @docker_required
     def test_task10_evaluates_with_mock_server(self, mock_server, mock_server_env):
         """Observable: task 10 can be evaluated end-to-end with a mock server."""
         results = _eval_task_with_mock("task10_code_debug", mock_server)

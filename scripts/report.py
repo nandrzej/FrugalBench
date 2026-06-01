@@ -27,6 +27,7 @@ def extract_evaluation(log: EvalLog) -> dict[str, object]:
         "status": log.status if isinstance(log.status, str) else getattr(log.status, "value", str(log.status)),
         "log_file": None,  # Will be set by caller
         "metrics": {},
+        "duration_sec": None,
     }
 
     # Extract metrics
@@ -48,6 +49,19 @@ def extract_evaluation(log: EvalLog) -> dict[str, object]:
 
             metrics[scorer_name] = scorer_metrics
         evaluation["metrics"] = metrics
+
+    # Extract timing from eval stats
+    if hasattr(log.eval, "stats") and log.eval.stats is not None:
+        stats = log.eval.stats
+        started = getattr(stats, "started_at", None)
+        completed = getattr(stats, "completed_at", None)
+        if started and completed:
+            try:
+                start_dt = datetime.fromisoformat(str(started))
+                end_dt = datetime.fromisoformat(str(completed))
+                evaluation["duration_sec"] = (end_dt - start_dt).total_seconds()
+            except (ValueError, TypeError):
+                pass
 
     return evaluation
 

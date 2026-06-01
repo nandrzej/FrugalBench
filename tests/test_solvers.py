@@ -157,3 +157,96 @@ class TestSolverPipelines:
 
         gen = generate()
         assert callable(gen)
+
+
+# ============================================================================
+# Task 10: python_debugger Solver (code-injection separation)
+# ============================================================================
+
+class TestPythonDebuggerSolver:
+    """Observable: python_debugger writes model code to solution file and static tests to a separate file."""
+
+    def _import_solver(self):
+        mod = _import_task_module("task10_code_debug")
+        return mod.python_debugger
+
+    def _run_solver(self, model_output: str):
+        """Run python_debugger with a mock sandbox and capture file writes."""
+        from inspect_ai.model import ChatMessageUser, ModelOutput
+        from inspect_ai.solver import TaskState
+
+        state = TaskState(
+            model="mock-model",
+            sample_id="10",
+            epoch=1,
+            input="Fix the bug",
+            messages=[ChatMessageUser(content="Fix the bug")],
+            output=ModelOutput(completion=model_output),
+            metadata={},
+        )
+
+        solver_factory = self._import_solver()
+        solver = solver_factory()
+
+        writes: dict[str, str] = {}
+        mock_sb = MagicMock()
+        mock_sb.write_file = AsyncMock(side_effect=lambda path, content: writes.update({path: content}))
+        mock_sb.exec = AsyncMock(return_value=MagicMock(stdout=""))
+
+        async def mock_generate(s):
+            s.output = ModelOutput(completion=model_output)
+            return s
+
+        async def _run():
+            with patch("tasks.task10_code_debug.sandbox", return_value=mock_sb):
+                return await solver(state, mock_generate), writes
+
+        result_state, captured_writes = asyncio.run(_run())
+        return result_state, captured_writes
+
+    def test_malicious_model_code_does_not_inject_into_test_file(self):
+        """Observable: model code containing os.system is written to solution.py only, not the test file."""
+        malicious = (
+            "```python\n"
+            "def sum_evens(nums):\n"
+            "    import os\n"
+            "    os.system('rm -rf /')\n"
+            "    return sum(n for n in nums if n % 2 == 0)\n"
+            "```"
+        )
+        _state, writes = self._run_solver(malicious)
+
+        solution = writes.get("/workspace/solution.py", "")
+        test_file_candidates = [v for k, v in writes.items() if k != "/workspace/solution.py"]
+        assert test_file_candidates, "Solver must write a test file separate from solution.py"
+        test_file = test_file_candidates[0]
+
+        assert "os.system" in solution, "Model code (including os.system) must land in solution.py"
+        assert "rm -rf" not in test_file, "Malicious model code must NOT appear in the test file"
+        assert "os.system" not in test_file, "Malicious model code must NOT appear in the test file"
+
+    def test_state_metadata_records_raw_model_code(self):
+        """Observable: state.metadata['code'] is the raw model code (not wrapped in sandbox harness)."""
+        model_code = "def sum_evens(nums):\n    return sum(n for n in nums if n % 2 == 0)"
+        state, _writes = self._run_solver(f"```python\n{model_code}\n```")
+
+        assert state.metadata.get("code") == model_code, (
+            f"state.metadata['code'] should be raw model code, got: {state.metadata.get('code')!r}"
+        )
+
+    def test_test_script_is_static_across_inputs(self):
+        """Observable: the test file content is identical regardless of model output (static harness)."""
+        outputs = [
+            "def sum_evens(nums):\n    return sum(n for n in nums if n % 2 == 0)\n",
+            "def factorial(n):\n    return 1 if n == 0 else n * factorial(n-1)\n",
+            "import os; os.system('echo pwned')\n",
+        ]
+        test_contents = []
+        for out in outputs:
+            _state, writes = self._run_solver(f"```python\n{out}```")
+            test_file = [v for k, v in writes.items() if k != "/workspace/solution.py"][0]
+            test_contents.append(test_file)
+
+        assert test_contents[0] == test_contents[1] == test_contents[2], (
+            "Test script must be static (identical) regardless of model output"
+        )

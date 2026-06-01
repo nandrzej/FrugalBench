@@ -15,44 +15,65 @@ from dataset import get_samples
 _TASK_DIR = Path(__file__).parent.parent
 _SANDBOX_CONFIG = str(_TASK_DIR / "sandbox" / "task10" / "compose.yaml")
 
+_TEST_SCRIPT = """import importlib.util
+
+spec = importlib.util.spec_from_file_location("solution", "/workspace/solution.py")
+solution = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(solution)
+
+tests_passed = 0
+tests_run = 0
+
+if hasattr(solution, "sum_evens"):
+    tests_run += 1
+    try:
+        assert solution.sum_evens([1, 2, 3, 4, 5, 6]) == 12
+        tests_passed += 1
+    except (AssertionError, Exception):
+        pass
+
+if hasattr(solution, "factorial"):
+    tests_run += 1
+    try:
+        assert solution.factorial(5) == 120
+        assert solution.factorial(0) == 1
+        tests_passed += 1
+    except (AssertionError, Exception):
+        pass
+
+if hasattr(solution, "remove_dupes"):
+    tests_run += 1
+    try:
+        res = solution.remove_dupes([1, 2, 2, 3, 1])
+        assert res == [1, 2, 3]
+        tests_passed += 1
+    except (AssertionError, Exception):
+        pass
+
+if tests_run > 0 and tests_passed == tests_run:
+    print("PASSED")
+else:
+    print(f"FAILED: {tests_passed}/{tests_run} tests passed")
+"""
+
 def _get_dataset() -> list[Sample]:
     return get_samples(10)
 
 @solver
 def python_debugger() -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        # Let the model fix the code
         state = await generate(state)
         text = state.output.completion
 
-        # Extract code block
         code = text
         code_block = re.search(r"```(?:python)?\s*\n(.*?)```", text, re.DOTALL)
         if code_block:
             code = code_block.group(1).strip()
 
-        # Test cases for each bug type in poc_dataset.csv (sum_evens, factorial, remove_dupes)
-        # We'll inject the model's code into a test script
-        test_script = f"""
-{code}
-
-# Test cases
-try:
-    if "sum_evens" in globals():
-        assert sum_evens([1, 2, 3, 4, 5, 6]) == 12
-    elif "factorial" in globals():
-        assert factorial(5) == 120
-        assert factorial(0) == 1
-    elif "remove_dupes" in globals():
-        res = remove_dupes([1, 2, 2, 3, 1])
-        assert res == [1, 2, 3]
-    print("PASSED")
-except Exception as err:
-    print(f"FAILED: {{err}}")
-"""
         sb = sandbox()
-        await sb.write_file("/workspace/solution.py", test_script)
-        result = await sb.exec(["python3", "/workspace/solution.py"])
+        await sb.write_file("/workspace/solution.py", code)
+        await sb.write_file("/workspace/run_tests.py", _TEST_SCRIPT)
+        result = await sb.exec(["python3", "/workspace/run_tests.py"])
 
         state.metadata["stdout"] = result.stdout
         state.metadata["code"] = code

@@ -21,19 +21,18 @@ def _get_dataset() -> list[Sample]:
 @solver
 def sql_executor() -> Solver:
     async def solve(state: TaskState, generate: Generate) -> TaskState:
-        # Let the model generate the SQL
         state = await generate(state)
         text = state.output.completion
 
-        # Extract SQL block
         sql_block = re.search(r"```sql?\s*\n(.*?)```", text, re.IGNORECASE | re.DOTALL)
         sql = sql_block.group(1).strip() if sql_block else text.strip().split(";")[0] + ";"
 
-        # Execute in sandbox
         sb = sandbox()
         result = await sb.exec(["sqlite3", "/workspace/database.db", sql])
+        gold_result = await sb.exec(["sqlite3", "/workspace/database.db", state.target.text])
 
         state.metadata["sql_output"] = result.stdout.strip()
+        state.metadata["expected_output"] = gold_result.stdout.strip()
         state.metadata["sql_query"] = sql
         return state
 
@@ -44,31 +43,14 @@ def sql_executor() -> Solver:
 def sql_scorer() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         output = state.metadata.get("sql_output", "")
-        # Target should be the expected result string
-        # For average age in Berlin: (30+25+40)/3 = 95/3 = 31.66... sqlite AVG returns float
-        # For count orders 'completed': 3
+        expected = state.metadata.get("expected_output", "")
 
-        # Determine expected output by running target SQL locally or knowing it
-        # Let's hardcode for the two samples in poc_dataset.csv
-        expected = ""
-        input_text = state.input
-        if isinstance(input_text, list):
-            input_text = " ".join([m.text for m in input_text])
-
-        if "Berlin" in input_text:
-            expected = "31.6666666666667"
-        elif "completed" in input_text:
-            expected = "3"
-
-        # Compare with tolerance for floats
         passed = False
         try:
-            if expected:
-                passed = (
-                    abs(float(output) - float(expected)) < 0.001
-                    if "." in expected
-                    else output == expected
-                )
+            if "." in expected:
+                passed = abs(float(output) - float(expected)) < 0.001
+            else:
+                passed = output == expected
         except ValueError:
             passed = False
 

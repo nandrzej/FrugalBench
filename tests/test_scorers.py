@@ -267,9 +267,10 @@ class TestSqlScorer:
         state = task_state(
             input_text="Count completed orders",
             output="SELECT COUNT(*) FROM orders WHERE status='completed';",
-            target="N/A",
+            target="SELECT COUNT(*) FROM orders WHERE status = 'completed'",
         )
         state.metadata["sql_output"] = "3"
+        state.metadata["expected_output"] = "3"
         score = _run_scorer(scorer_fn, state, state.target.text)
         assert score.value == 1.0
 
@@ -279,9 +280,10 @@ class TestSqlScorer:
         state = task_state(
             input_text="Average age in Berlin",
             output="SELECT AVG(age) FROM users WHERE city='Berlin';",
-            target="N/A",
+            target="SELECT AVG(age) FROM users WHERE city = 'Berlin'",
         )
-        state.metadata["sql_output"] = "31.6666"  # Expected: 31.6666666666667
+        state.metadata["sql_output"] = "31.6666"
+        state.metadata["expected_output"] = "31.6666666666667"
         score = _run_scorer(scorer_fn, state, state.target.text)
         assert score.value == 1.0
 
@@ -439,8 +441,9 @@ class TestTaskResponsesScoreCorrectly:
         state = task_state(
             input_text="Average age in Berlin",
             output=TASK_RESPONSES[16],
-            target="N/A",
+            target="SELECT AVG(age) FROM users WHERE city = 'Berlin'",
         )
         state.metadata["sql_output"] = "31.6666666666667"
+        state.metadata["expected_output"] = "31.6666666666667"
         score = _run_scorer(mod.sql_scorer, state, state.target.text)
         assert score.value == 1.0

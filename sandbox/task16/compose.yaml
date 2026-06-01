@@ -1,3 +1,7 @@
 services:
   default:
-    build: .
+    build:
+      context: ../..
+      dockerfile: sandbox/task16/Dockerfile
+    command: tail -f /dev/null
+    init: true

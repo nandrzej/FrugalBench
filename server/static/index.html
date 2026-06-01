@@ -16,6 +16,9 @@
                 <button class="btn-summary" :class="{ 'active': dashboardActive }" @click="showDashboard()">
                     Summary Dashboard
                 </button>
+                <button class="btn-summary" :class="{ 'active': leaderboardActive }" @click="showLeaderboard()">
+                    Leaderboard
+                </button>
             </div>
             <div class="header-stats" x-show="selectedReport && !dashboardActive">
                 <span x-text="`${evaluations.length} tasks`"></span>
@@ -144,6 +147,50 @@
                             </template>
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Leaderboard View -->
+            <section class="detail-view" x-show="leaderboardActive">
+                <h2>Model Leaderboard</h2>
+                <p class="leaderboard-footer" x-show="leaderboard.models.length > 0">
+                    Overall score = mean of per-task accuracies. Latest run per model per task selected.
+                    Tasks have different sample counts; confidence intervals vary.
+                </p>
+                <div class="table-container" x-show="leaderboard.models.length > 0">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th @click="sortLeaderboard('model')" class="sortable">
+                                    Model
+                                    <span x-show="lbSortField === 'model'" x-text="lbSortDir === 'asc' ? '↑' : '↓'"></span>
+                                </th>
+                                <th @click="sortLeaderboard('overall')" class="sortable">
+                                    Overall
+                                    <span x-show="lbSortField === 'overall'" x-text="lbSortDir === 'asc' ? '↑' : '↓'"></span>
+                                </th>
+                                <template x-for="task in leaderboard.task_names" :key="task">
+                                    <th class="task-col" x-text="formatTaskName(task)"></th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="model in sortedLeaderboardModels" :key="model.model">
+                                <tr>
+                                    <td class="model-name" x-text="model.model"></td>
+                                    <td class="overall-score" x-text="model.overall.toFixed(3)"></td>
+                                    <template x-for="task in leaderboard.task_names" :key="task">
+                                        <td class="task-score" :class="scoreClass(model.tasks[task])">
+                                            <span x-text="model.tasks[task] !== undefined ? model.tasks[task].toFixed(2) : '-'"></span>
+                                        </td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="no-results" x-show="leaderboard.models.length === 0">
+                    <p>No evaluation results found. Run evaluations first.</p>
                 </div>
             </section>
 
@@ -282,6 +329,10 @@
                 sortField: 'timestamp',
                 sortDirection: 'desc',
                 reportTree: [],
+                leaderboard: { models: [], task_names: [], generated_at: '' },
+                leaderboardActive: false,
+                lbSortField: 'overall',
+                lbSortDir: 'desc',
 
                 async init() {
                     await this.loadReports();
@@ -299,12 +350,68 @@
 
                 showDashboard() {
                     this.dashboardActive = true;
+                    this.leaderboardActive = false;
                     this.selectedReport = null;
+                },
+
+                async showLeaderboard() {
+                    this.leaderboardActive = true;
+                    this.dashboardActive = false;
+                    this.selectedReport = null;
+                    await this.loadLeaderboard();
+                },
+
+                async loadLeaderboard() {
+                    try {
+                        const response = await fetch('/api/leaderboard');
+                        this.leaderboard = await response.json();
+                    } catch (error) {
+                        console.error('Failed to load leaderboard:', error);
+                    }
+                },
+
+                get sortedLeaderboardModels() {
+                    const models = [...this.leaderboard.models];
+                    models.sort((a, b) => {
+                        let aVal, bVal;
+                        if (this.lbSortField === 'model') {
+                            aVal = a.model;
+                            bVal = b.model;
+                            return this.lbSortDir === 'asc'
+                                ? aVal.localeCompare(bVal)
+                                : bVal.localeCompare(aVal);
+                        }
+                        aVal = a[this.lbSortField] ?? -Infinity;
+                        bVal = b[this.lbSortField] ?? -Infinity;
+                        return this.lbSortDir === 'asc' ? aVal - bVal : bVal - aVal;
+                    });
+                    return models;
+                },
+
+                sortLeaderboard(field) {
+                    if (this.lbSortField === field) {
+                        this.lbSortDir = this.lbSortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.lbSortField = field;
+                        this.lbSortDir = field === 'model' ? 'asc' : 'desc';
+                    }
+                },
+
+                formatTaskName(task) {
+                    return task.replace(/^task(\d+)_/, 'T$1 ');
+                },
+
+                scoreClass(value) {
+                    if (value === undefined) return '';
+                    if (value >= 0.8) return 'score-high';
+                    if (value >= 0.5) return 'score-mid';
+                    return 'score-low';
                 },
 
                 async loadReport(filename) {
                     try {
                         this.dashboardActive = false;
+                        this.leaderboardActive = false;
                         // Load full report
                         const reportResponse = await fetch(`/api/reports/${filename}`);
                         const reportData = await reportResponse.json();

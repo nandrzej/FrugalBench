@@ -444,3 +444,82 @@ body {
     border-radius: var(--radius);
     border: 2px dashed var(--color-border);
 }
+
+/* Leaderboard */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.leaderboard-table th {
+    background-color: var(--color-bg-secondary);
+    padding: 0.75rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.leaderboard-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.leaderboard-table th.sortable:hover {
+    background-color: var(--color-card-hover);
+}
+
+.leaderboard-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.875rem;
+}
+
+.leaderboard-table tbody tr:hover {
+    background-color: var(--color-card-hover);
+}
+
+.leaderboard-table .model-name {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.leaderboard-table .overall-score {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.leaderboard-table .task-col {
+    text-align: center;
+    min-width: 60px;
+}
+
+.leaderboard-table .task-score {
+    text-align: center;
+}
+
+.leaderboard-table .task-score.score-high {
+    color: var(--color-success);
+}
+
+.leaderboard-table .task-score.score-mid {
+    color: var(--color-text);
+}
+
+.leaderboard-table .task-score.score-low {
+    color: var(--color-error);
+}
+
+.leaderboard-footer {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+}

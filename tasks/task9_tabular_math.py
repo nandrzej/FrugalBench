@@ -6,7 +6,7 @@ from inspect_ai.model import GenerateConfig
 from inspect_ai.scorer import pattern
 from inspect_ai.solver import generate
 
-from dataset import get_samples
+from dataset import TASK9_TARGET_PATTERN, get_samples
 
 
 def _get_dataset() -> list[Sample]:
@@ -18,6 +18,6 @@ def task9_tabular_math() -> Task:
     return Task(
         dataset=_get_dataset(),
         solver=generate(),
-        scorer=pattern(r"<total>(\d+(?:\.\d+)?)</total>"),
+        scorer=pattern(TASK9_TARGET_PATTERN),
         config=GenerateConfig(temperature=0, seed=42),
     )

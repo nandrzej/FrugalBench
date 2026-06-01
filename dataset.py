@@ -10,6 +10,8 @@ from inspect_ai.dataset import Sample
 
 _DATASET_PATH = Path(__file__).parent / "data" / "poc_dataset.csv"
 
+TASK9_TARGET_PATTERN = r"<total>(\d+(?:\.\d+)?)</total>"
+
 
 def _load_dataset():
     """Load the raw CSV dataset."""
@@ -31,7 +33,7 @@ def get_samples(task_id: int) -> list[Sample]:
         # Task 9: pattern scorer extracts digits from <total>N</total>
         # Target should be just the number for comparison
         if task_id == 9:
-            match = re.search(r"<total>(\d+(?:\.\d+)?)</total>", target_text)
+            match = re.search(TASK9_TARGET_PATTERN, target_text)
             if match:
                 target_text = match.group(1)
 

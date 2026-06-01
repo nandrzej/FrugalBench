@@ -194,6 +194,34 @@ class TestCodeDebugScorer:
         assert "{code}" not in script
 
 
+class TestTask9DecimalRegex:
+    """Observable: Task 9 decimal regex works for edge cases; dataset and task9 share the same pattern."""
+
+    @pytest.fixture
+    def dataset_pattern(self):
+        from dataset import TASK9_TARGET_PATTERN
+        return TASK9_TARGET_PATTERN
+
+    @pytest.mark.parametrize("text,expected", [
+        ("<total>42</total>", "42"),
+        ("<total>123.45</total>", "123.45"),
+        ("<total>0.001</total>", "0.001"),
+    ])
+    def test_dataset_pattern_extracts_decimal(self, dataset_pattern, text, expected):
+        """Observable: TASK9_TARGET_PATTERN extracts integers and decimals from <total>...</total>."""
+        import re
+        match = re.search(dataset_pattern, text)
+        assert match is not None, f"Pattern should match {text!r}"
+        assert match.group(1) == expected
+
+    def test_task9_module_imports_shared_pattern(self):
+        """Observable: task9_tabular_math.py imports TASK9_TARGET_PATTERN (no hardcoded regex)."""
+        mod = _import_task_module("task9_tabular_math")
+        assert hasattr(mod, "TASK9_TARGET_PATTERN") or "TASK9_TARGET_PATTERN" in dir(mod), (
+            "task9_tabular_math should import TASK9_TARGET_PATTERN from dataset"
+        )
+
+
 class TestSchemaExtractionScorer:
     """Observable behavior of schema_scorer in task13_schema_extraction.py."""
 

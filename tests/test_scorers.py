@@ -202,7 +202,7 @@ class TestTask9DecimalRegex:
         from dataset import TASK9_TARGET_PATTERN
         return TASK9_TARGET_PATTERN
 
-    @pytest.mark.parametrize("text,expected", [
+    @pytest.mark.parametrize(("text", "expected"), [
         ("<total>42</total>", "42"),
         ("<total>123.45</total>", "123.45"),
         ("<total>0.001</total>", "0.001"),
@@ -213,6 +213,13 @@ class TestTask9DecimalRegex:
         match = re.search(dataset_pattern, text)
         assert match is not None, f"Pattern should match {text!r}"
         assert match.group(1) == expected
+
+    def test_dataset_pattern_extracts_decimal_no_leading_digit(self, dataset_pattern):
+        """Observable: TASK9_TARGET_PATTERN matches numbers without leading digit like .5."""
+        import re
+        match = re.search(dataset_pattern, "<total>.5</total>")
+        assert match is not None, "Pattern should match .5 (no leading digit)"
+        assert match.group(1) == ".5"
 
     def test_task9_module_imports_shared_pattern(self):
         """Observable: task9_tabular_math.py imports TASK9_TARGET_PATTERN (no hardcoded regex)."""
@@ -475,3 +482,36 @@ class TestTaskResponsesScoreCorrectly:
         state.metadata["expected_output"] = "31.6666666666667"
         score = _run_scorer(mod.sql_scorer, state, state.target.text)
         assert score.value == 1.0
+
+
+class TestNLIMultiThreshold:
+    """Multi-threshold reporting in NLI scorer explanation."""
+
+    @pytest.mark.asyncio
+    async def test_explanation_includes_threshold_report(self, task_state):
+        from scorers.modern_nli import modern_nli
+
+        scorer_fn = modern_nli(threshold=0.6)
+        state = task_state(
+            input_text="Summarize: The cat sat on the mat.",
+            output="A cat was on a mat.",
+        )
+        target = Target("")
+        result = await scorer_fn(state, target)
+
+        assert "passes at" in result.explanation.lower() or "threshold" in result.explanation.lower()
+
+    @pytest.mark.asyncio
+    async def test_explanation_reports_specific_thresholds(self, task_state):
+        from scorers.modern_nli import modern_nli
+
+        scorer_fn = modern_nli(threshold=0.6)
+        state = task_state(
+            input_text="Summarize: The revenue grew by 15% in Q3.",
+            output="Revenue increased significantly.",
+        )
+        target = Target("")
+        result = await scorer_fn(state, target)
+
+        for threshold in [0.5, 0.6, 0.7]:
+            assert str(threshold) in result.explanation

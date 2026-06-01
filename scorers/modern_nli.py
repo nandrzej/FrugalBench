@@ -39,10 +39,15 @@ def modern_nli(threshold: float = 0.5) -> Scorer:
 
         passed = entailment_prob >= threshold
 
+        threshold_report = " | ".join(
+            f"{t}: {'PASS' if entailment_prob >= t else 'FAIL'}"
+            for t in [0.5, 0.6, 0.7]
+        )
+
         return Score(
             value=1.0 if passed else 0.0,
             answer=hypothesis,
-            explanation=f"Entailment probability: {entailment_prob:.4f} (threshold: {threshold})",
+            explanation=f"Score: {entailment_prob:.4f} (threshold: {threshold}) | {threshold_report}",
         )
 
     return score

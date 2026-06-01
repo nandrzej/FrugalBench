@@ -11,6 +11,7 @@ Verifies observable behaviors:
 
 import asyncio
 import base64
+import inspect
 import re
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -250,3 +251,92 @@ class TestPythonDebuggerSolver:
         assert test_contents[0] == test_contents[1] == test_contents[2], (
             "Test script must be static (identical) regardless of model output"
         )
+
+
+# ============================================================================
+# Task 16: sql_executor Solver (solver->scorer metadata handoff)
+# ============================================================================
+
+class TestSqlExecutorSolver:
+    """Observable: sql_executor writes metadata keys the scorer depends on."""
+
+    def _import_solver(self):
+        mod = _import_task_module("task16_sql_execution")
+        return mod.sql_executor
+
+    def _run_solver(self, model_output: str, model_stdout: str, gold_stdout: str):
+        """Run sql_executor with a mock sandbox; first exec returns model_stdout, second returns gold_stdout."""
+        from inspect_ai.model import ChatMessageUser, ModelOutput
+        from inspect_ai.scorer import Target
+        from inspect_ai.solver import TaskState
+
+        state = TaskState(
+            model="mock-model",
+            sample_id="16",
+            epoch=1,
+            input="Write a SQL query",
+            target=Target("SELECT COUNT(*) FROM orders WHERE status = 'completed'"),
+            messages=[ChatMessageUser(content="Write a SQL query")],
+            output=ModelOutput(completion=model_output),
+            metadata={},
+        )
+
+        solver_factory = self._import_solver()
+        solver = solver_factory()
+
+        mock_sb = MagicMock()
+        exec_results = [MagicMock(stdout=model_stdout), MagicMock(stdout=gold_stdout)]
+        mock_sb.exec = AsyncMock(side_effect=exec_results)
+
+        async def mock_generate(s):
+            s.output = ModelOutput(completion=model_output)
+            return s
+
+        async def _run():
+            with patch("tasks.task16_sql_execution.sandbox", return_value=mock_sb):
+                return await solver(state, mock_generate)
+
+        return asyncio.run(_run()), mock_sb
+
+    def test_solver_writes_sql_output_and_expected_output_metadata(self):
+        """Observable: sql_executor writes sql_output and expected_output to state.metadata."""
+        state, _ = self._run_solver(
+            model_output="```sql\nSELECT COUNT(*) FROM orders;\n```",
+            model_stdout="5\n",
+            gold_stdout="5\n",
+        )
+        assert state.metadata.get("sql_output") == "5", (
+            f"sql_output should be stripped stdout, got: {state.metadata.get('sql_output')!r}"
+        )
+        assert state.metadata.get("expected_output") == "5", (
+            f"expected_output should be stripped stdout, got: {state.metadata.get('expected_output')!r}"
+        )
+
+    def test_solver_metadata_keys_match_scorer_contract(self):
+        """Observable: solver metadata keys are exactly the ones the scorer reads (no silent rename)."""
+        from tasks.task16_sql_execution import sql_scorer
+
+        scorer_source = inspect.getsource(sql_scorer)
+
+        state, _ = self._run_solver(
+            model_output="```sql\nSELECT 1;\n```",
+            model_stdout="1",
+            gold_stdout="1",
+        )
+        for key in ("sql_output", "expected_output"):
+            assert key in state.metadata, f"Solver must write '{key}' to metadata"
+            assert f'state.metadata.get("{key}"' in scorer_source or f'state.metadata["{key}"]' in scorer_source, (
+                f"Scorer source must read '{key}' — rename would silently return 0.0"
+            )
+
+    def test_scoring_round_trip_returns_1_for_matching_output(self):
+        """Observable: solver-written metadata makes the scorer return 1.0 when output matches gold."""
+        from tasks.task16_sql_execution import sql_scorer
+
+        state, _ = self._run_solver(
+            model_output="```sql\nSELECT COUNT(*) FROM orders;\n```",
+            model_stdout="42",
+            gold_stdout="42",
+        )
+        score = asyncio.run(sql_scorer()(state, state.target))
+        assert score.value == 1.0, f"Scorer should return 1.0 for matching values, got: {score.value}"

@@ -1,0 +1,125 @@
+{
+  "version": "1.1.0",
+  "generated_at": "2026-04-15T14:44:26.925580+00:00",
+  "run_id": "Cy7iq7G85ptR6myE6kzZtK",
+  "model": "lm-studio/mock-model",
+  "provider": "openai-api",
+  "config": {
+    "seed": 42,
+    "temperature": 0.0
+  },
+  "evaluations": [
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task10_code_debug",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "Cy7iq7G85ptR6myE6kzZtK",
+      "status": "success",
+      "log_file": "2026-04-15T12-28-46-00-00_task10-code-debug_ATxNE7NxSKM9KvaW4L4pX4.eval",
+      "metrics": {
+        "includes": {
+          "scorer_type": "includes",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task11_logic_puzzle",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "a2HwMGvjh5So3v9XSL3RxM",
+      "status": "success",
+      "log_file": "2026-04-15T12-28-46-00-00_task11-logic-puzzle_n4A84CSffis34kRADhZ9V2.eval",
+      "metrics": {
+        "includes": {
+          "scorer_type": "includes",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task12_safety_refusal",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "6dRvLZu6Q73RPcK2CMP5Wm",
+      "status": "success",
+      "log_file": "2026-04-15T12-28-46-00-00_task12-safety-refusal_HTCs6AwbAqPizPn5Co6bSV.eval",
+      "metrics": {
+        "includes": {
+          "scorer_type": "includes",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task6_hallucination",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "DneehKJp28wtW2N6BMGTis",
+      "status": "success",
+      "log_file": "2026-04-15T12-28-46-00-00_task6-hallucination_AcaXqmqgXEzohv633WS6uq.eval",
+      "metrics": {
+        "pattern": {
+          "scorer_type": "pattern",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task7_routing",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "548EdSMTgecFcYD9iSAqmN",
+      "status": "success",
+      "log_file": "2026-04-15T12-28-46-00-00_task7-routing_BDzMUDhJedcqRLXeWQDLpD.eval",
+      "metrics": {
+        "exact": {
+          "scorer_type": "exact",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task8_rag_abstention",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "2bNnkdPdHGzXYzCHWpvXrF",
+      "status": "success",
+      "log_file": "2026-04-15T12-28-46-00-00_task8-rag-abstention_Ze5ET722usxQmZH2ygoKbu.eval",
+      "metrics": {
+        "exact": {
+          "scorer_type": "exact",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task9_tabular_math",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "TStX53EjU8VEBZwymsgfJy",
+      "status": "success",
+      "log_file": "2026-04-15T12-28-46-00-00_task9-tabular-math_muY5qKrrzQtbE9pCHsez3c.eval",
+      "metrics": {
+        "pattern": {
+          "scorer_type": "pattern",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    }
+  ]
+}

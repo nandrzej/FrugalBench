@@ -1,0 +1,74 @@
+{
+  "version": "1.1.0",
+  "generated_at": "2026-04-15T14:44:26.919261+00:00",
+  "run_id": "C97qxXdTrKXnqZVJqHcA3F",
+  "model": "lm-studio/mock-model",
+  "provider": "openai-api",
+  "config": "Default Settings",
+  "evaluations": [
+    {
+      "timestamp": "2026-04-15T12:19:37+00:00",
+      "task": "task6_hallucination",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "C97qxXdTrKXnqZVJqHcA3F",
+      "status": "success",
+      "log_file": "2026-04-15T12-19-37-00-00_task6-hallucination_FgyQJxXf9P5UA9WCGmxXjf.eval",
+      "metrics": {
+        "pattern": {
+          "scorer_type": "pattern",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:19:37+00:00",
+      "task": "task7_routing",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "j85uApJrBXZTKguWL5cfU3",
+      "status": "success",
+      "log_file": "2026-04-15T12-19-37-00-00_task7-routing_FGX7VWT2utYvEtB5HHSFUH.eval",
+      "metrics": {
+        "exact": {
+          "scorer_type": "exact",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:19:37+00:00",
+      "task": "task8_rag_abstention",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "9jyA5q99jMeFNxxSkCqVij",
+      "status": "success",
+      "log_file": "2026-04-15T12-19-37-00-00_task8-rag-abstention_D2NsjUaU2QYbrMtXhJFKkN.eval",
+      "metrics": {
+        "exact": {
+          "scorer_type": "exact",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-04-15T12:19:37+00:00",
+      "task": "task9_tabular_math",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "3GswksqmTxcAer2sJ4CuPa",
+      "status": "success",
+      "log_file": "2026-04-15T12-19-37-00-00_task9-tabular-math_FAAzXxiHZQQ9G47rpxMgLn.eval",
+      "metrics": {
+        "pattern": {
+          "scorer_type": "pattern",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    }
+  ]
+}

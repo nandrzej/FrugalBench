@@ -1,0 +1,29 @@
+{
+  "version": "1.1.0",
+  "generated_at": "2026-04-15T20:55:54.160471+00:00",
+  "run_id": "DneehKJp28wtW2N6BMGTis",
+  "model": "lm-studio/mock-model",
+  "provider": "openai-api",
+  "config": {
+    "seed": 42,
+    "temperature": 0.0
+  },
+  "evaluations": [
+    {
+      "timestamp": "2026-04-15T12:28:46+00:00",
+      "task": "task6_hallucination",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "DneehKJp28wtW2N6BMGTis",
+      "status": "success",
+      "log_file": "dummy.eval",
+      "metrics": {
+        "pattern": {
+          "scorer_type": "pattern",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    }
+  ]
+}

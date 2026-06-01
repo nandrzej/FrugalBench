@@ -1,0 +1,26 @@
+{
+  "version": "1.1.0",
+  "generated_at": "2026-04-15T14:44:26.917261+00:00",
+  "run_id": "mxnTQgKQUuyXwbqhzs7NCG",
+  "model": "lm-studio/lfm2.5-1.2b-instruct-mlx",
+  "provider": "openai-api",
+  "config": "Default Settings",
+  "evaluations": [
+    {
+      "timestamp": "2026-04-14T20:38:35+00:00",
+      "task": "task7_routing",
+      "model": "openai-api/lm-studio/lfm2.5-1.2b-instruct-mlx",
+      "run_id": "mxnTQgKQUuyXwbqhzs7NCG",
+      "status": "success",
+      "log_file": "2026-04-14T20-38-35-00-00_task7-routing_NsySj8ZvYKeFBuMUhQ97FC.eval",
+      "metrics": {
+        "exact": {
+          "scorer_type": "exact",
+          "samples": 1,
+          "value": 0.0,
+          "stderr": 0.0
+        }
+      }
+    }
+  ]
+}

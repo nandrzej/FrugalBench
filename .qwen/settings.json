@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(inspect.aisi.org.uk)"
+    ]
+  },
+  "$version": 3
+}

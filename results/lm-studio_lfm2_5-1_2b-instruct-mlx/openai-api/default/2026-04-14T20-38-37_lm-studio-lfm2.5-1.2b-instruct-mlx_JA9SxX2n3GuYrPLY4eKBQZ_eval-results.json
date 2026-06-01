@@ -1,0 +1,26 @@
+{
+  "version": "1.1.0",
+  "generated_at": "2026-04-15T14:44:26.917361+00:00",
+  "run_id": "JA9SxX2n3GuYrPLY4eKBQZ",
+  "model": "lm-studio/lfm2.5-1.2b-instruct-mlx",
+  "provider": "openai-api",
+  "config": "Default Settings",
+  "evaluations": [
+    {
+      "timestamp": "2026-04-14T20:38:37+00:00",
+      "task": "task8_rag_abstention",
+      "model": "openai-api/lm-studio/lfm2.5-1.2b-instruct-mlx",
+      "run_id": "JA9SxX2n3GuYrPLY4eKBQZ",
+      "status": "success",
+      "log_file": "2026-04-14T20-38-37-00-00_task8-rag-abstention_ewb5mLSWtWrzw8CEAmvV2X.eval",
+      "metrics": {
+        "exact": {
+          "scorer_type": "exact",
+          "samples": 1,
+          "value": 1.0,
+          "stderr": 0.0
+        }
+      }
+    }
+  ]
+}

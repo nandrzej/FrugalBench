@@ -1,0 +1,25 @@
+{
+  "version": "1.1.0",
+  "generated_at": "2026-04-15T14:44:26.919158+00:00",
+  "run_id": "7ZNtdWWGR6RDt93d7HPSph",
+  "model": "lm-studio/mock-model",
+  "provider": "openai-api",
+  "config": "Default Settings",
+  "evaluations": [
+    {
+      "timestamp": "2026-04-15T12:19:34+00:00",
+      "task": "task5_agentic",
+      "model": "openai-api/lm-studio/mock-model",
+      "run_id": "7ZNtdWWGR6RDt93d7HPSph",
+      "status": "success",
+      "log_file": "2026-04-15T12-19-34-00-00_task5-agentic_nozjehyCueYXfxUukQuNrT.eval",
+      "metrics": {
+        "agentic_scorer": {
+          "scorer_type": "custom",
+          "samples": 1,
+          "value": 0.0
+        }
+      }
+    }
+  ]
+}

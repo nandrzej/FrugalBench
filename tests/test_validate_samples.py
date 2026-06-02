@@ -1,9 +1,12 @@
 """Tests for sample validation script."""
 
-import csv
-from pathlib import Path
+from __future__ import annotations
 
-import pytest
+import csv
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestValidateSamples:

@@ -37,7 +37,7 @@ def redaction_scorer() -> Scorer:
 
         redacted = sum(
             1 for span in pii_spans
-            if not re.search(r'\b' + re.escape(span) + r'\b', text, re.IGNORECASE)
+            if not re.search(r"\b" + re.escape(span) + r"\b", text, re.IGNORECASE)
         )
         recall = redacted / len(pii_spans)
 

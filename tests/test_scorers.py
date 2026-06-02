@@ -598,3 +598,35 @@ class TestNliFaithfulnessScorer:
         score = _run_scorer(nli_faithfulness, state, state.target.text)
         explanation = str(score.explanation or "")
         assert "sentence" in explanation.lower() or "min" in explanation.lower()
+
+
+class TestNLIMultiThreshold:
+    """Multi-threshold reporting in NLI faithfulness scorer."""
+
+    def test_explanation_includes_threshold_report(self, task_state):
+        """Observable: explanation contains multi-threshold pass/fail."""
+        from scorers.nli_faithfulness import nli_faithfulness
+
+        state = task_state(
+            input_text="The project Alpha-7 has a deadline of May 14th.",
+            output="The deadline is May 14th.",
+            target="N/A",
+        )
+        score = _run_scorer(nli_faithfulness, state, state.target.text)
+        explanation = str(score.explanation or "")
+        assert "t=0.5" in explanation
+        assert "t=0.6" in explanation
+        assert "t=0.7" in explanation
+
+    def test_explanation_reports_specific_thresholds(self, task_state):
+        """Observable: explanation shows PASS/FAIL for 0.5, 0.6, 0.7."""
+        from scorers.nli_faithfulness import nli_faithfulness
+
+        state = task_state(
+            input_text="The project Alpha-7 has a deadline of May 14th.",
+            output="The deadline is May 14th.",
+            target="N/A",
+        )
+        score = _run_scorer(nli_faithfulness, state, state.target.text)
+        explanation = str(score.explanation or "")
+        assert "PASS" in explanation or "FAIL" in explanation

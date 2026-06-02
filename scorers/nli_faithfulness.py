@@ -4,6 +4,7 @@
 
 import re
 
+import torch
 from inspect_ai.scorer import Score, Scorer, Target, accuracy, scorer
 from inspect_ai.solver import TaskState
 
@@ -14,17 +15,25 @@ def _split_sentences(text: str) -> list[str]:
     return [s for s in sentences if s.strip()]
 
 
+_model = None
+
+
+def _get_model():
+    """Lazy-load the NLI model on first use."""
+    global _model  # noqa: PLW0603
+    if _model is None:
+        from sentence_transformers import CrossEncoder
+        _model = CrossEncoder("dleemiller/finecat-nli-l")
+    return _model
+
+
 @scorer(metrics=[accuracy()])
 def nli_faithfulness(threshold: float = 0.5) -> Scorer:
     """NLI-based faithfulness scorer with sentence-level decomposition.
 
     Splits the summary into sentences, scores each against the source,
-    and returns the minimum score. Uses cross-encoder/nli-deberta-v3-base.
+    and returns the minimum score. Uses dleemiller/finecat-nli-l.
     """
-    import torch
-    from sentence_transformers import CrossEncoder
-    model = CrossEncoder("cross-encoder/nli-deberta-v3-base")
-
     async def score(state: TaskState, target: Target) -> Score:
         premise = state.input
         if isinstance(premise, list):
@@ -42,15 +51,24 @@ def nli_faithfulness(threshold: float = 0.5) -> Scorer:
                 explanation="Empty summary",
             )
 
+        model = _get_model()  # type: ignore[no-untyped-call]
         pairs = [(premise, sent) for sent in sentences]
-        raw_scores = model.predict(pairs)
-        raw = torch.tensor(raw_scores).squeeze()
-        # Handle different output shapes: 1D for single pair, 2D for multiple
+        raw_scores = model.predict(pairs, apply_softmax=True)
+        raw = torch.tensor(raw_scores)
         if raw.ndim == 0:
             sent_scores = [float(raw)]
+        elif raw.ndim == 2 and raw.shape[1] > 1:
+            sent_scores = raw[:, 0].tolist()
+        elif raw.ndim == 2:
+            sent_scores = raw.squeeze(-1).tolist()
+        elif raw.ndim == 1:
+            sent_scores = (
+                [float(raw[0])]
+                if len(sentences) == 1 and raw.shape[0] > 1
+                else raw.tolist()
+            )
         else:
-            probs = torch.softmax(raw, dim=-1)
-            sent_scores = [float(probs[1])] if probs.ndim == 1 else [float(p[1]) for p in probs]
+            sent_scores = [float(r[0]) for r in raw]
 
         min_score = min(sent_scores)
         passed = min_score >= threshold
@@ -59,10 +77,18 @@ def nli_faithfulness(threshold: float = 0.5) -> Scorer:
             f"s{i+1}={s:.3f}" for i, s in enumerate(sent_scores)
         )
 
+        threshold_report = " | ".join(
+            f"t={t}:{'PASS' if min_score >= t else 'FAIL'}"
+            for t in [0.5, 0.6, 0.7]
+        )
+
         return Score(
             value=1.0 if passed else 0.0,
             answer=hypothesis,
-            explanation=f"min_score={min_score:.4f} (threshold={threshold}) | sentences: [{sent_details}]",
+            explanation=(
+                f"min_score={min_score:.4f} (threshold={threshold}) | "
+                f"{threshold_report} | sentences: [{sent_details}]"
+            ),
         )
 
     return score

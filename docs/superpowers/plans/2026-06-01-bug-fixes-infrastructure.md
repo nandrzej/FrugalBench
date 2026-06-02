@@ -85,6 +85,8 @@ class TestTask11LogicPattern:
 Run: `uv run pytest tests/test_scorers.py::TestTask11LogicPattern -v`
 Expected: `test_matches_unknown` FAILS — current regex `(YES|NO)` doesn't match UNKNOWN.
 
+> **Implementation Note:** The `TestTask11LogicPattern` test class was not added. The fix (appending UNKNOWN to the regex) was trivial enough that end-to-end coverage in `test_full_tasks.py::TestTask11EndToEnd` provides sufficient regression protection.
+
 - [ ] **Step 3: Fix the regex**
 
 In `tasks/task11_logic_puzzle.py`, change line 23:
@@ -114,6 +116,8 @@ git commit -m "fix(task11): add UNKNOWN to regex pattern for FOL samples"
 - Modify: `tasks/task9_tabular_math.py:21`
 - Test: `tests/test_scorers.py` (new class `TestTask9DecimalPattern`)
 - Test: `tests/test_dataset.py` (new test in existing class)
+
+> **Implementation Note:** The actual implementation uses a shared constant `TASK9_TARGET_PATTERN = r"<total>(\d*\.?\d+)</total>"` in `dataset.py:13` imported by `task9_tabular_math.py:9` rather than inline regex in each file. The regex also differs: `\d*\.?\d+` handles `.5` (no leading digit), whereas the plan's `\d+\.?\d*` requires one. The test class is named `TestTask9DecimalRegex` (not `TestTask9DecimalPattern`). The `TestTask9DecimalTarget` class was not added; coverage comes from `TestTask9DecimalRegex.test_dataset_pattern_extracts_decimal` testing the shared pattern directly.
 
 - [ ] **Step 1: Write failing test for decimal extraction in dataset.py**
 
@@ -238,6 +242,8 @@ jsonschema
 Run: `pip install --dry-run -r requirements.txt 2>&1 | head -5`
 Expected: No parse errors. Shows packages that would be installed.
 
+> **Implementation Note:** `pip install --dry-run` output format varies across pip versions. The `just check` workflow (`just check` runs ruff, mypy, and pytest) provides more reliable validation of the installed environment.
+
 - [ ] **Step 3: Commit**
 
 ```bash
@@ -303,6 +309,8 @@ to:
 COPY sandbox/task16/init_db.py /workspace/init_db.py
 ```
 
+> **Implementation Note:** The Dockerfile was restructured during implementation. The final file has 7 lines with COPY on line 5 (not line 4) and includes non-root user setup (Task 7).
+
 This is needed because the build context is now the project root (`../..`), so all COPY paths must be relative to the project root.
 
 - [ ] **Step 5: Validate compose configs**
@@ -335,6 +343,8 @@ git commit -m "fix(sandbox): fix task 10/16 compose build context and container 
 **Files:**
 - Modify: `tasks/task10_code_debug.py:36-55`
 - Test: `tests/test_scorers.py` (new class `TestTask10CodeStructure`)
+
+> **Implementation Note:** The actual implementation stores the test harness as a module-level `_TEST_SCRIPT` string using `importlib.util` and `hasattr` checks instead of `from solution import *`. The solver writes to `run_tests.py` (not `test_solution.py`). The test class is named `TestCodeDebugScorer` with `test_test_script_is_static_no_fstring` checking `"{code}" not in _TEST_SCRIPT` rather than using `inspect.getsource` to search for f-strings in the solver function source. This approach tests the data (the script content) rather than implementation details (the solver's source code), making the test less brittle.
 
 - [ ] **Step 1: Write failing test verifying code separation**
 
@@ -436,6 +446,8 @@ git commit -m "fix(task10): eliminate code injection via f-string interpolation"
 - Modify: `data/poc_dataset.csv` (Task 16 rows — Target field)
 - Test: `tests/test_scorers.py` (new class `TestTask16DynamicScoring`)
 
+> **Implementation Note:** The actual implementation splits the work: the **solver** executes gold SQL (`state.target.text`) in the sandbox and stores the result in `state.metadata["expected_output"]`. The **scorer** reads from metadata and compares with `state.metadata["sql_output"]` using tolerance `0.001` (not `1e-4`). This avoids executing gold SQL twice. The test class is `TestSqlScorer` (not `TestTask16DynamicScoring`) and tests observable behavior by setting metadata directly rather than inspecting scorer source code. The `test_scorer_has_no_hardcoded_expected_values` test with the buggy ternary assertion was omitted entirely — the metadata-based design eliminates hardcoded values by construction.
+
 - [ ] **Step 1: Write failing test for dynamic scoring**
 
 Add to `tests/test_scorers.py`:
@@ -450,7 +462,8 @@ class TestTask16DynamicScoring:
         from tasks.task16_sql_execution import sql_scorer
         source = inspect.getsource(sql_scorer)
         assert "31.666" not in source, "Scorer must not hardcode expected values"
-        assert '"Berlin"' not in source or "Berlin" not in source.split("expected")[0] if "expected" in source else True
+
+> **Note:** The original plan had a second assertion with a buggy ternary expression (`assert A or B if C else True`) that would silently no-op due to Python's operator precedence, and `source.split("expected")[0]` would raise `IndexError` if "expected" leads the string. This was corrected to a single clear assertion.
 
     def test_scorer_executes_gold_sql(self):
         """Observable: scorer source executes the target SQL to compute expected output."""

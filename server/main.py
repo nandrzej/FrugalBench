@@ -1,6 +1,7 @@
 """FastAPI server for HTML report viewer."""
 
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import TypedDict
@@ -225,8 +226,6 @@ class LeaderboardData(TypedDict):
 
 def _extract_task_number(task_name: str) -> int:
     """Extract numeric task ID from task name like 'task7_routing'."""
-    import re
-
     match = re.match(r"task(\d+)", task_name)
     return int(match.group(1)) if match else 0
 
@@ -271,9 +270,9 @@ def _collect_model_task_scores() -> dict[str, dict[str, tuple[str, float]]]:
     """Collect latest scores per model per task from all report files."""
     report_files = get_report_files()
     model_task_scores: dict[str, dict[str, tuple[str, float]]] = {}
+    results_dir = app.state.project_root / "results"
 
     for report_file in report_files:
-        results_dir = app.state.project_root / "results"
         try:
             rel_path = str(report_file.relative_to(results_dir))
             report_data = load_report(rel_path)
@@ -390,8 +389,6 @@ async def export_leaderboard(format: str) -> Response:  # noqa: A002
 
 def _format_task_header(task_name: str) -> str:
     """Convert 'task7_routing' to 'T7 routing'."""
-    import re
-
     match = re.match(r"task(\d+)_(.*)", task_name)
     if match:
         return f"T{match.group(1)} {match.group(2)}"

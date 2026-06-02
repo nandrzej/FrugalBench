@@ -113,74 +113,86 @@ class TestJsonExtractionScorer:
         score = _run_scorer(json_extraction, state, state.target.text)
         assert score.value == 1.0
 
+    def test_markdown_fences_stripped(self, task_state):
+        """Observable: JSON wrapped in markdown fences is parsed correctly."""
+        from scorers.json_extraction import json_extraction
+
+        state = task_state(
+            output='```json\n{"required_skills": ["Python"], "remote_allowed": true}\n```',
+            target='{"required_skills": ["Python"], "remote_allowed": true}',
+        )
+        score = _run_scorer(json_extraction, state, state.target.text)
+        assert score.value == 1.0
+
+    def test_trailing_commas_handled(self, task_state):
+        """Observable: JSON with trailing commas is parsed correctly."""
+        from scorers.json_extraction import json_extraction
+
+        state = task_state(
+            output='{"required_skills": ["Python",], "remote_allowed": false,}',
+            target='{"required_skills": ["Python"], "remote_allowed": false}',
+        )
+        score = _run_scorer(json_extraction, state, state.target.text)
+        assert score.value == 1.0
+
 
 # ============================================================================
 # Task 3: Email Constraints Scorer
 # ============================================================================
 
 class TestEmailConstraintsScorer:
-    """Observable behavior of scorers/email_constraints.py."""
+    """Observable behavior of scorers/email_constraints.py with per-sample constraints."""
 
-    def test_valid_email_returns_1(self, task_state):
-        """Observable: email meeting all constraints → score 1.0."""
+    def test_constraints_from_target_json(self, task_state):
+        """Observable: constraints are read from Target JSON, not hardcoded."""
         from scorers.email_constraints import email_constraints
 
+        target_json = '{"sentence_count": {"exact": 3}, "must_include": ["apologize"], "forbidden": ["but"], "require_signoff": true}'
         state = task_state(
-            output="I sincerely apologize for the delay in your replacement part. "
-                   "The tracking shows it is in transit and should arrive soon. "
-                   "Thank you for your patience, best regards.",
-            target="Constraint Eval",
+            output="We apologize for the inconvenience. Your issue is being resolved.\n\nBest regards,\nSupport",
+            target=target_json,
         )
         score = _run_scorer(email_constraints, state, state.target.text)
         assert score.value == 1.0
 
-    def test_missing_apology_returns_0(self, task_state):
-        """Observable: no apology phrase → score 0.0."""
+    def test_per_constraint_explanation(self, task_state):
+        """Observable: explanation reports each constraint individually."""
         from scorers.email_constraints import email_constraints
 
+        target_json = '{"sentence_count": {"exact": 4}, "must_include": ["sorry"], "forbidden": ["however"], "require_signoff": true}'
         state = task_state(
-            output="Your part is being shipped. It will arrive soon. "
-                   "Thank you for your patience.\n\nBest regards,\nSupport",
-            target="Constraint Eval",
+            output="Sorry for the delay. However, your part is on the way. It arrives tomorrow.\n\nBest regards,\nSupport",
+            target=target_json,
         )
         score = _run_scorer(email_constraints, state, state.target.text)
         assert score.value == 0.0
+        explanation = str(score.explanation or "")
+        assert "FAIL" in explanation
+        assert "forbidden" in explanation.lower()
 
-    def test_contains_forbidden_word_returns_0(self, task_state):
-        """Observable: contains 'however' → score 0.0."""
+    def test_all_constraints_pass(self, task_state):
+        """Observable: all constraints met → score 1.0 with 'All constraints met' explanation."""
         from scorers.email_constraints import email_constraints
 
+        target_json = '{"sentence_count": {"exact": 4}, "must_include": ["sorry"], "forbidden": ["however"], "require_signoff": true}'
         state = task_state(
-            output="I apologize for the delay. However, your part is on the way. "
-                   "It should arrive tomorrow.\n\nBest regards,\nSupport",
-            target="Constraint Eval",
+            output="I am sorry for the delay. Your part is in transit. It should arrive tomorrow.\n\nBest regards,\nSupport",
+            target=target_json,
         )
         score = _run_scorer(email_constraints, state, state.target.text)
-        assert score.value == 0.0
-        assert "however" in str(score.explanation or "").lower()
+        assert score.value == 1.0
 
-    def test_wrong_sentence_count_returns_0(self, task_state):
-        """Observable: not exactly 3 sentences → score 0.0."""
+    def test_word_count_constraint(self, task_state):
+        """Observable: word_count constraint with min/max is enforced."""
         from scorers.email_constraints import email_constraints
 
+        target_json = '{"sentence_count": {"exact": 1}, "word_count": {"min": 10, "max": 20}, "require_signoff": false}'
         state = task_state(
-            output="Sorry for the delay.",
-            target="Constraint Eval",
+            output="This is a short email with enough words to pass the constraint check.",
+            target=target_json,
         )
         score = _run_scorer(email_constraints, state, state.target.text)
-        assert score.value == 0.0
-
-    def test_missing_signoff_returns_0(self, task_state):
-        """Observable: no sign-off → score 0.0."""
-        from scorers.email_constraints import email_constraints
-
-        state = task_state(
-            output="I apologize for the delay. Your part is on the way. "
-                   "It should arrive tomorrow.",
-            target="Constraint Eval",
-        )
-        score = _run_scorer(email_constraints, state, state.target.text)
-        assert score.value == 0.0
+        assert score.value == 1.0
 
 
 class TestCodeDebugScorer:
@@ -230,63 +242,122 @@ class TestTask9DecimalRegex:
 
 
 class TestSchemaExtractionScorer:
-    """Observable behavior of schema_scorer in task13_schema_extraction.py."""
+    """Observable behavior of schema_scorer with content accuracy."""
 
     def _get_scorer(self):
         mod = _import_task_module("task13_schema_extraction")
         return mod.schema_scorer
 
-    def test_valid_schema_returns_1(self, task_state):
-        """Observable: valid JSON against schema → score 1.0."""
+    def test_valid_schema_correct_values_returns_1(self, task_state):
+        """Observable: valid schema + all values match → score 1.0."""
         scorer_fn = self._get_scorer()
-        valid_json = {
+        extracted = {
             "name": "John Doe",
             "role": "Engineer",
             "company": "Tech Corp",
             "location": {"address": "123 Main St", "city": "Berlin"},
             "contact": {"email": "john@example.com", "phone": "555-1234"},
         }
-        state = task_state(output=json.dumps(valid_json), target="N/A")
+        target = "schema:person|" + json.dumps(extracted)
+        state = task_state(output=json.dumps(extracted), target=target)
         score = _run_scorer(scorer_fn, state, state.target.text)
         assert score.value == 1.0
 
-    def test_invalid_schema_returns_0(self, task_state):
-        """Observable: missing required field → score 0.0."""
+    def test_valid_schema_wrong_values_partial_credit(self, task_state):
+        """Observable: valid schema + some values wrong → partial score (0.4 + field_match * 0.6)."""
         scorer_fn = self._get_scorer()
-        invalid_json = {"name": "John"}  # Missing many fields
-        state = task_state(output=json.dumps(invalid_json), target="N/A")
+        extracted = {
+            "name": "John Doe",
+            "role": "Engineer",
+            "company": "Tech Corp",
+            "location": {"address": "123 Main St", "city": "Berlin"},
+            "contact": {"email": "john@example.com", "phone": "555-1234"},
+        }
+        wrong_output = {
+            "name": "Wrong Name",
+            "role": "Engineer",
+            "company": "Tech Corp",
+            "location": {"address": "123 Main St", "city": "Berlin"},
+            "contact": {"email": "john@example.com", "phone": "555-1234"},
+        }
+        target = "schema:person|" + json.dumps(extracted)
+        state = task_state(output=json.dumps(wrong_output), target=target)
+        score = _run_scorer(scorer_fn, state, state.target.text)
+        assert 0.0 < score.value < 1.0
+
+    def test_invalid_schema_low_score(self, task_state):
+        """Observable: invalid JSON → score 0.0."""
+        scorer_fn = self._get_scorer()
+        target = "schema:person|{}"
+        state = task_state(output="not valid json", target=target)
         score = _run_scorer(scorer_fn, state, state.target.text)
         assert score.value == 0.0
 
+    def test_explanation_reports_composite(self, task_state):
+        """Observable: explanation includes schema_valid and field_match components."""
+        scorer_fn = self._get_scorer()
+        extracted = {"name": "John", "role": "Dev", "company": "X", "location": {"address": "1", "city": "B"}, "contact": {"email": "a@b", "phone": "1"}}
+        target = "schema:person|" + json.dumps(extracted)
+        state = task_state(output=json.dumps(extracted), target=target)
+        score = _run_scorer(scorer_fn, state, state.target.text)
+        explanation = str(score.explanation or "")
+        assert "schema" in explanation.lower()
+
 
 class TestRedactionScorer:
-    """Observable behavior of redaction_scorer in task14_pii_redaction.py."""
+    """Observable behavior of redaction_scorer with PII recall metric."""
 
     def _get_scorer(self):
         mod = _import_task_module("task14_pii_redaction")
         return mod.redaction_scorer
 
-    def test_successful_redaction_returns_1(self, task_state):
-        """Observable: PII replaced by [REDACTED] → score 1.0."""
+    def test_full_redaction_returns_1(self, task_state):
+        """Observable: all PII spans redacted → score 1.0."""
         scorer_fn = self._get_scorer()
+        target = json.dumps({"pii_spans": ["John Doe", "john@example.com", "555-1234"]})
         state = task_state(
-            input_text="Contact john@doe.com at 555-1212.",
-            output="Contact [REDACTED] at [REDACTED].",
-            target="N/A",
+            input_text="Contact John Doe at john@example.com or 555-1234.",
+            output="Contact [REDACTED] at [REDACTED] or [REDACTED].",
+            target=target,
         )
         score = _run_scorer(scorer_fn, state, state.target.text)
         assert score.value == 1.0
 
-    def test_failed_redaction_returns_0(self, task_state):
-        """Observable: email still present → score 0.0."""
+    def test_partial_redaction_returns_fraction(self, task_state):
+        """Observable: 2 of 3 spans redacted → score ~0.667."""
         scorer_fn = self._get_scorer()
+        target = json.dumps({"pii_spans": ["John Doe", "john@example.com", "555-1234"]})
         state = task_state(
-            input_text="Contact john@doe.com at 555-1212.",
-            output="Contact john@doe.com at [REDACTED].",
-            target="N/A",
+            input_text="Contact John Doe at john@example.com or 555-1234.",
+            output="Contact [REDACTED] at [REDACTED] or 555-1234.",
+            target=target,
+        )
+        score = _run_scorer(scorer_fn, state, state.target.text)
+        assert abs(score.value - (2 / 3)) < 0.01
+
+    def test_no_redaction_returns_0(self, task_state):
+        """Observable: no PII redacted → score 0.0."""
+        scorer_fn = self._get_scorer()
+        target = json.dumps({"pii_spans": ["John Doe", "john@example.com"]})
+        state = task_state(
+            input_text="Contact John Doe at john@example.com.",
+            output="Contact John Doe at john@example.com.",
+            target=target,
         )
         score = _run_scorer(scorer_fn, state, state.target.text)
         assert score.value == 0.0
+
+    def test_explanation_reports_recall(self, task_state):
+        """Observable: explanation includes recall fraction."""
+        scorer_fn = self._get_scorer()
+        target = json.dumps({"pii_spans": ["John Doe", "john@example.com"]})
+        state = task_state(
+            input_text="Contact John Doe at john@example.com.",
+            output="Contact [REDACTED] at john@example.com.",
+            target=target,
+        )
+        score = _run_scorer(scorer_fn, state, state.target.text)
+        assert "1/2" in str(score.explanation) or "0.5" in str(score.explanation)
 
 
 class TestSqlScorer:
@@ -357,16 +428,17 @@ class TestTaskResponsesScoreCorrectly:
         from scorers.email_constraints import email_constraints
         from tests.support.mock_lm_server import TASK_RESPONSES
 
+        target_json = '{"sentence_count": {"exact": 3}, "must_include": ["apologize"], "forbidden": ["however"], "require_signoff": true}'
         state = task_state(
             output=TASK_RESPONSES[3],
-            target="Constraint Eval",
+            target=target_json,
         )
         score = _run_scorer(email_constraints, state, state.target.text)
         assert score.value == 1.0
 
     def test_task4_response_scores_c(self, task_state):
         """Observable: task 4 canned summary scores CORRECT via NLI."""
-        from scorers.modern_nli import modern_nli
+        from scorers.nli_faithfulness import nli_faithfulness
         from tests.support.mock_lm_server import TASK_RESPONSES
 
         # Use identical text for maximum entailment probability
@@ -375,7 +447,7 @@ class TestTaskResponsesScoreCorrectly:
             output=TASK_RESPONSES[4],
             target="['Alpha-7', 'May 14th']",
         )
-        score = _run_scorer(modern_nli, state, state.target.text)
+        score = _run_scorer(nli_faithfulness, state, state.target.text)
         assert score.value == 1.0
 
     def test_task6_response_scores_c(self, task_state):
@@ -448,9 +520,11 @@ class TestTaskResponsesScoreCorrectly:
         mod = _import_task_module("task13_schema_extraction")
         from tests.support.mock_lm_server import TASK_RESPONSES
 
+        expected_data = json.loads(TASK_RESPONSES[13])
+        target = "schema:person|" + json.dumps(expected_data)
         state = task_state(
             output=TASK_RESPONSES[13],
-            target="N/A",
+            target=target,
         )
         score = _run_scorer(mod.schema_scorer, state, state.target.text)
         assert score.value == 1.0
@@ -460,10 +534,11 @@ class TestTaskResponsesScoreCorrectly:
         mod = _import_task_module("task14_pii_redaction")
         from tests.support.mock_lm_server import TASK_RESPONSES
 
+        target = json.dumps({"pii_spans": ["John", "john@doe.com"]})
         state = task_state(
             input_text="Contact John at john@doe.com",
             output=TASK_RESPONSES[14],
-            target="N/A",
+            target=target,
         )
         score = _run_scorer(mod.redaction_scorer, state, state.target.text)
         assert score.value == 1.0
@@ -484,34 +559,42 @@ class TestTaskResponsesScoreCorrectly:
         assert score.value == 1.0
 
 
-class TestNLIMultiThreshold:
-    """Multi-threshold reporting in NLI scorer explanation."""
+class TestNliFaithfulnessScorer:
+    """Observable behavior of scorers/nli_faithfulness.py."""
 
-    @pytest.mark.asyncio
-    async def test_explanation_includes_threshold_report(self, task_state):
-        from scorers.modern_nli import modern_nli
+    def test_entailment_returns_1(self, task_state):
+        """Observable: faithful summary → score 1.0."""
+        from scorers.nli_faithfulness import nli_faithfulness
 
-        scorer_fn = modern_nli(threshold=0.6)
         state = task_state(
-            input_text="Summarize: The cat sat on the mat.",
-            output="A cat was on a mat.",
+            input_text="The project Alpha-7 has a deadline of May 14th. The budget is $50,000.",
+            output="The deadline for project Alpha-7 is May 14th.",
+            target="N/A",
         )
-        target = Target("")
-        result = await scorer_fn(state, target)
+        score = _run_scorer(nli_faithfulness, state, state.target.text)
+        assert score.value == 1.0
 
-        assert "passes at" in result.explanation.lower() or "threshold" in result.explanation.lower()
+    def test_contradiction_returns_0(self, task_state):
+        """Observable: unfaithful summary → score 0.0."""
+        from scorers.nli_faithfulness import nli_faithfulness
 
-    @pytest.mark.asyncio
-    async def test_explanation_reports_specific_thresholds(self, task_state):
-        from scorers.modern_nli import modern_nli
-
-        scorer_fn = modern_nli(threshold=0.6)
         state = task_state(
-            input_text="Summarize: The revenue grew by 15% in Q3.",
-            output="Revenue increased significantly.",
+            input_text="The project Alpha-7 has a deadline of May 14th.",
+            output="The deadline for Alpha-7 is June 1st. The budget is $1 million.",
+            target="N/A",
         )
-        target = Target("")
-        result = await scorer_fn(state, target)
+        score = _run_scorer(nli_faithfulness, state, state.target.text)
+        assert score.value == 0.0
 
-        for threshold in [0.5, 0.6, 0.7]:
-            assert str(threshold) in result.explanation
+    def test_explanation_includes_sentence_scores(self, task_state):
+        """Observable: explanation reports per-sentence scores."""
+        from scorers.nli_faithfulness import nli_faithfulness
+
+        state = task_state(
+            input_text="The project Alpha-7 has a deadline of May 14th.",
+            output="The deadline is May 14th. The project was cancelled.",
+            target="N/A",
+        )
+        score = _run_scorer(nli_faithfulness, state, state.target.text)
+        explanation = str(score.explanation or "")
+        assert "sentence" in explanation.lower() or "min" in explanation.lower()

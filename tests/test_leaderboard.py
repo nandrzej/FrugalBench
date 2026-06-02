@@ -42,6 +42,16 @@ def _make_eval(task: str, value: float, timestamp: str = "2026-05-01T10:00:00+00
     }
 
 
+@pytest.fixture(autouse=True)
+def _restore_project_root():
+    """Restore app.state.project_root after each test to prevent race conditions."""
+    import server.main
+
+    original = server.main.app.state.project_root
+    yield
+    server.main.app.state.project_root = original
+
+
 @pytest.fixture
 def multi_model_reports(tmp_path: Path) -> Path:
     """Create reports for two models with overlapping tasks."""

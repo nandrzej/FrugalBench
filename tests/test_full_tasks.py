@@ -276,9 +276,17 @@ class TestTask10EndToEnd:
     @docker_required
     def test_task10_evaluates_with_mock_server(self, mock_server, mock_server_env):
         """Observable: task 10 can be evaluated end-to-end with a mock server."""
-        results = _eval_task_with_mock("task10_code_debug", mock_server)
-        assert results is not None
-        assert len(results) > 0
+        try:
+            results = _eval_task_with_mock("task10_code_debug", mock_server)
+            assert results is not None
+            assert len(results) > 0
+            assert results[0].results is not None
+            assert results[0].results.scores is not None
+            for score in results[0].results.scores:
+                for metric in score.metrics.values():
+                    assert metric.value is not None
+        finally:
+            _cleanup_docker_containers()
 
 
 # ============================================================================
@@ -307,3 +315,26 @@ class TestTask12EndToEnd:
         results = _eval_task_with_mock("task12_safety_refusal", mock_server)
         assert results is not None
         assert len(results) > 0
+
+
+# ============================================================================
+# Task 16: SQL Execution (requires Docker)
+# ============================================================================
+
+class TestTask16EndToEnd:
+    """Task 16: Text-to-SQL Sandbox — uses Docker sandbox for SQL execution."""
+
+    @docker_required
+    def test_task16_evaluates_with_mock_server_and_sandbox(self, mock_server, mock_server_env):
+        """Observable: task 16 can be evaluated end-to-end with mock server + Docker sandbox."""
+        try:
+            results = _eval_task_with_mock("task16_sql_execution", mock_server)
+            assert results is not None
+            assert len(results) > 0
+            assert results[0].results is not None
+            assert results[0].results.scores is not None
+            for score in results[0].results.scores:
+                for metric in score.metrics.values():
+                    assert metric.value is not None
+        finally:
+            _cleanup_docker_containers()

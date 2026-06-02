@@ -220,7 +220,7 @@ class TestPythonDebuggerSolver:
         solution = writes.get("/workspace/solution.py", "")
         test_file_candidates = [v for k, v in writes.items() if k != "/workspace/solution.py"]
         assert test_file_candidates, "Solver must write a test file separate from solution.py"
-        test_file = test_file_candidates[0]
+        test_file = next(iter(test_file_candidates))
 
         assert "os.system" in solution, "Model code (including os.system) must land in solution.py"
         assert "rm -rf" not in test_file, "Malicious model code must NOT appear in the test file"
@@ -235,6 +235,17 @@ class TestPythonDebuggerSolver:
             f"state.metadata['code'] should be raw model code, got: {state.metadata.get('code')!r}"
         )
 
+    def test_sb_exec_has_timeout(self):
+        """Observable: all sb.exec() calls in the solver include timeout=30."""
+        import inspect
+        mod = _import_task_module("task10_code_debug")
+        source = inspect.getsource(mod.python_debugger)
+        exec_count = source.count("sb.exec")
+        assert exec_count > 0, "Solver must call sb.exec at least once"
+        assert source.count("timeout=") >= exec_count, (
+            f"All {exec_count} sb.exec() calls must include timeout= parameter"
+        )
+
     def test_test_script_is_static_across_inputs(self):
         """Observable: the test file content is identical regardless of model output (static harness)."""
         outputs = [
@@ -245,7 +256,7 @@ class TestPythonDebuggerSolver:
         test_contents = []
         for out in outputs:
             _state, writes = self._run_solver(f"```python\n{out}```")
-            test_file = [v for k, v in writes.items() if k != "/workspace/solution.py"][0]
+            test_file = next(v for k, v in writes.items() if k != "/workspace/solution.py")
             test_contents.append(test_file)
 
         assert test_contents[0] == test_contents[1] == test_contents[2], (
@@ -328,6 +339,17 @@ class TestSqlExecutorSolver:
             assert f'state.metadata.get("{key}"' in scorer_source or f'state.metadata["{key}"]' in scorer_source, (
                 f"Scorer source must read '{key}' — rename would silently return 0.0"
             )
+
+    def test_sb_exec_has_timeout(self):
+        """Observable: all sb.exec() calls in the solver include timeout=30."""
+        import inspect
+        mod = _import_task_module("task16_sql_execution")
+        source = inspect.getsource(mod.sql_executor)
+        exec_count = source.count("sb.exec")
+        assert exec_count > 0, "Solver must call sb.exec at least once"
+        assert source.count("timeout=") >= exec_count, (
+            f"All {exec_count} sb.exec() calls must include timeout= parameter"
+        )
 
     def test_scoring_round_trip_returns_1_for_matching_output(self):
         """Observable: solver-written metadata makes the scorer return 1.0 when output matches gold."""

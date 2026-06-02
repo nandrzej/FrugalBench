@@ -5,3 +5,18 @@ services:
       dockerfile: sandbox/task16/Dockerfile
     command: tail -f /dev/null
     init: true
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /workspace:size=256M,mode=1777
+    cap_drop:
+      - ALL
+    mem_limit: 512M
+    cpus: "1"
+    ulimits:
+      nproc: 64
+      nofile:
+        soft: 128
+        hard: 256

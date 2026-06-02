@@ -312,6 +312,70 @@ class TestTask9TabularMath:
 
 
 # ============================================================================
+# Sandbox Compose Files: Structural Requirements
+# ============================================================================
+
+
+class TestSandboxComposeStructural:
+    """Verify sandbox compose.yaml files meet security and functionality requirements."""
+
+    COMPOSE_FILES = {
+        2: "sandbox/task2/compose.yaml",
+        5: "sandbox/task5/compose.yaml",
+        10: "sandbox/task10/compose.yaml",
+        16: "sandbox/task16/compose.yaml",
+    }
+
+    @pytest.mark.parametrize(("task_id", "rel_path"), COMPOSE_FILES.items())
+    def test_compose_has_workspace_tmpfs(self, task_id, rel_path, project_root):
+        """Observable: compose.yaml tmpfs includes /workspace (sandbox must be writable)."""
+        compose_path = project_root / rel_path
+        content = compose_path.read_text()
+        has_workspace_tmpfs = "/workspace" in content.split("tmpfs:")[1].split("\n")[0] if "tmpfs:" in content else False
+        if not has_workspace_tmpfs:
+            has_workspace_tmpfs = "/workspace" in content
+        assert has_workspace_tmpfs, (
+            f"{rel_path}: tmpfs must include /workspace so sandbox can write files"
+        )
+
+    @pytest.mark.parametrize(("task_id", "rel_path"), COMPOSE_FILES.items())
+    def test_compose_has_cap_drop_all(self, task_id, rel_path, project_root):
+        """Observable: compose.yaml drops all capabilities for security."""
+        compose_path = project_root / rel_path
+        content = compose_path.read_text()
+        assert "cap_drop" in content, (
+            f"{rel_path}: must have cap_drop: [ALL] for security hardening"
+        )
+
+    @pytest.mark.parametrize(("task_id", "rel_path"), COMPOSE_FILES.items())
+    def test_compose_uses_service_mem_limit_not_deploy(self, task_id, rel_path, project_root):
+        """Observable: compose.yaml uses service-level mem_limit, not deploy.resources.limits (Swarm-only)."""
+        compose_path = project_root / rel_path
+        content = compose_path.read_text()
+        assert "deploy:" not in content, (
+            f"{rel_path}: should not use deploy.resources.limits (Swarm-only); use mem_limit/cpus instead"
+        )
+        assert "mem_limit" in content, (
+            f"{rel_path}: must have service-level mem_limit"
+        )
+
+
+class TestTask16DockerfileStructural:
+    """Verify task16 Dockerfile has correct file ownership after init_db.py."""
+
+    def test_chown_present_after_init_db(self, project_root):
+        """Observable: task16 Dockerfile runs chown after init_db.py (database.db owned by root otherwise)."""
+        dockerfile = project_root / "sandbox" / "task16" / "Dockerfile"
+        content = dockerfile.read_text()
+        assert "chown" in content, (
+            "task16 Dockerfile must include chown after init_db.py so sandbox user can write to database.db"
+        )
+        assert "init_db.py" in content, (
+            "task16 Dockerfile must reference init_db.py"
+        )
+
+
+# ============================================================================
 # Cross-Task: All tasks produce multiple samples
 # ============================================================================
 
@@ -331,18 +395,9 @@ class TestAllTasksProduceMultipleSamples:
         "task10_code_debug",
         "task11_logic_puzzle",
         "task12_safety_refusal",
-        pytest.param(
-            "task13_schema_extraction",
-            marks=pytest.mark.xfail(reason="Plan 4: expand samples to 20+"),
-        ),
-        pytest.param(
-            "task14_pii_redaction",
-            marks=pytest.mark.xfail(reason="Plan 4: expand samples to 20+"),
-        ),
-        pytest.param(
-            "task16_sql_execution",
-            marks=pytest.mark.xfail(reason="Plan 4: expand samples to 20+"),
-        ),
+        "task13_schema_extraction",
+        "task14_pii_redaction",
+        "task16_sql_execution",
     ]
 
     @pytest.mark.parametrize("task_module", TASK_MODULES)

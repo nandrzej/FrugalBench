@@ -53,7 +53,7 @@ class TestGetSampleReturnsValidSample:
         """Observable: get_samples returns all samples for a task."""
         from dataset import get_samples
         samples = get_samples(1)
-        assert len(samples) == 3
+        assert len(samples) >= 3
         for s in samples:
             assert s.id.startswith("1_")
 
@@ -211,10 +211,10 @@ class TestTask9Tiers:
             target = sample.target
             try:
                 float(target)
-            except ValueError:
+            except ValueError as err:
                 raise AssertionError(
                     f"Task 9 target is not numeric: '{target}' (input: {sample.input[:50]}...)"
-                )
+                ) from err
 
 
 class TestTask9TargetExtraction:
@@ -235,6 +235,147 @@ class TestTask9TargetExtraction:
 
         sample = get_sample(9)
         assert sample.target == "160"
+
+
+class TestTask11Tiers:
+    """Task 11 must have tiered difficulty with YES/NO/UNKNOWN answers."""
+
+    def test_minimum_22_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(11)
+        assert len(samples) >= 22
+
+    def test_has_unknown_answers(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(11)
+        unknown = [s for s in samples if s.target == "UNKNOWN"]
+        assert len(unknown) >= 3, "Task 11 must have UNKNOWN answers for hard FOL tier"
+
+    def test_answer_distribution(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(11)
+        targets = [s.target for s in samples]
+        yes_count = targets.count("YES")
+        no_count = targets.count("NO")
+        unknown_count = targets.count("UNKNOWN")
+        total = len(targets)
+        assert yes_count / total >= 0.25, "YES should be well-represented"
+        assert no_count / total >= 0.15, "NO should have reasonable representation"
+        assert unknown_count / total >= 0.1, "UNKNOWN should be present"
+
+
+class TestTask6SNLI:
+    """Task 6 must have SNLI-style samples with all three labels."""
+
+    def test_minimum_15_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(6)
+        assert len(samples) >= 15
+
+    def test_all_three_labels(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(6)
+        targets = {s.target for s in samples}
+        assert "ENTAILMENT" in targets
+        assert "CONTRADICTION" in targets
+        assert "NEUTRAL" in targets
+
+    def test_balanced_labels(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(6)
+        targets = [s.target for s in samples]
+        for label in ["ENTAILMENT", "CONTRADICTION", "NEUTRAL"]:
+            count = targets.count(label)
+            assert count >= 4, f"Label {label} has only {count} samples, need >= 4"
+
+
+class TestTask7Expansion:
+    """Task 7 must have 20+ samples across all 4 categories."""
+
+    def test_minimum_20_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(7)
+        assert len(samples) >= 20
+
+    def test_all_categories_represented(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(7)
+        targets = {s.target for s in samples}
+        assert "[BILLING]" in targets
+        assert "[TECH_SUPPORT]" in targets
+        assert "[SALES]" in targets
+        assert "[SPAM]" in targets
+
+    def test_balanced_categories(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(7)
+        targets = [s.target for s in samples]
+        for category in ["[BILLING]", "[TECH_SUPPORT]", "[SALES]", "[SPAM]"]:
+            count = targets.count(category)
+            assert count >= 4, f"Category {category} has only {count} samples"
+
+
+class TestTask12Expansion:
+    """Task 12 must have harmful and benign samples."""
+
+    def test_minimum_30_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(12)
+        assert len(samples) >= 30
+
+    def test_has_benign_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(12)
+        benign = [s for s in samples if s.target == "BENIGN"]
+        assert len(benign) >= 10, "Task 12 must have benign samples that should NOT be refused"
+
+    def test_has_harmful_samples(self) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(12)
+        harmful = [s for s in samples if s.target != "BENIGN"]
+        assert len(harmful) >= 20, "Task 12 must have harmful samples that should be refused"
+
+
+class TestRemainingTaskExpansion:
+    """All remaining tasks must meet minimum sample counts."""
+
+    @pytest.mark.parametrize(
+        ("task_id", "minimum"),
+        [
+            (1, 50),
+            (2, 20),
+            (4, 20),
+            (10, 20),
+            (13, 18),
+            (14, 20),
+            (16, 20),
+        ],
+    )
+    def test_minimum_samples(self, task_id: int, minimum: int) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(task_id)
+        assert len(samples) >= minimum, f"Task {task_id} has {len(samples)} samples, need {minimum}"
+
+    @pytest.mark.parametrize("task_id", [1, 2, 4, 10, 13, 14, 16])
+    def test_unique_inputs(self, task_id: int) -> None:
+        from dataset import get_samples
+
+        samples = get_samples(task_id)
+        inputs = [s.input for s in samples]
+        assert len(set(inputs)) == len(inputs), f"Task {task_id} has duplicate inputs"
 
 
 class TestInvalidTaskIds:

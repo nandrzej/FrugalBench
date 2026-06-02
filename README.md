@@ -135,7 +135,7 @@ results/
 | 1 | JSON Extraction | Custom | 3 | No | `json_extraction` | Extracts entities into a partial-match JSON. |
 | 2 | Log Processing | Sandbox | 3 | **Yes** | Bash Exec | Extracts IPs and counts from logs via Bash. |
 | 3 | Email Reply | Custom | 3 | No | `email_constraints` | Validates sentence count, tone, and forbidden words. |
-| 4 | Summarization | NLI | 3 | No | `modern_nli` | Verifies faithfulness using a Cross-Encoder model. |
+| 4 | Summarization | NLI | 3 | No | `nli_faithfulness` | Verifies faithfulness using a Cross-Encoder model. |
 | 5 | Multi-hop Agentic | Sandbox | 3 | **Yes** | Agent + Bash | Interactive file discovery and decoding task. |
 | 6 | Hallucination | Pattern | 3 | No | `pattern(...)` | NLI logic consistency check (ENTAILMENT/etc). |
 | 7 | Routing | Exact | 3 | No | `exact()` | Triage classification into specific codes. |
@@ -162,7 +162,7 @@ Each task is defined as a Python function decorated with `@task`. These function
 
 ### Scorer Types
 1. **Built-in**: Uses Inspect AI's standard scorers like `exact()` or `pattern()`.
-2. **Custom Modules**: Reusable scorers located in `scorers/` (e.g., `modern_nli`, `email_constraints`).
+2. **Custom Modules**: Reusable scorers located in `scorers/` (e.g., `nli_faithfulness`, `email_constraints`).
 3. **Inline Scorers**: Task-specific scoring logic defined within the task file (e.g., Task 13's `schema_scorer`).
 
 ### Sandbox Execution Model
@@ -213,7 +213,7 @@ hrnss/
 │   ├── task10/ (Python)         # Environment for code execution
 │   └── task16/ (SQLite)         # Environment for SQL execution
 ├── scorers/                     # Reusable custom scorers
-│   ├── modern_nli.py            # Faithfulness via Cross-Encoder
+│   ├── nli_faithfulness.py            # Faithfulness via Cross-Encoder
 │   ├── json_extraction.py       # Partial match JSON scoring
 │   └── email_constraints.py     # Rule-based email validation
 ├── scripts/                     # Utility scripts
@@ -243,4 +243,4 @@ Ensure your user has permission to run Docker commands without `sudo`, or prefix
 The `INSPECT_MODEL` in `.env` must match the identifier expected by Inspect AI. For LM Studio, it typically follows `openai/lm-studio/<model-name>`.
 
 **Memory Issues with NLI (Task 4)**
-The `modern_nli` scorer loads a 1.5GB model. Ensure your system has enough RAM/VRAM. You can adjust the threshold in the task definition.
+The `nli_faithfulness` scorer loads a 1.5GB model. Ensure your system has enough RAM/VRAM. You can adjust the threshold in the task definition.

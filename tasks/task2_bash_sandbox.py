@@ -71,7 +71,7 @@ def log_processing_scorer() -> Scorer:
         matches = re.findall(table_pattern, report)
 
         # Check for specific expected pattern from target
-        has_target_pattern = bool(re.search(target.text, report))
+        has_target_pattern = bool(re.search(re.escape(target.text), report))
 
         score_val = 1.0 if (len(matches) >= 3 and has_target_pattern) else 0.0
 

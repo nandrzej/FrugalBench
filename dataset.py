@@ -10,7 +10,7 @@ from inspect_ai.dataset import Sample
 
 _DATASET_PATH = Path(__file__).parent / "data" / "poc_dataset.csv"
 
-TASK9_TARGET_PATTERN = r"<total>(\d+(?:\.\d+)?)</total>"
+TASK9_TARGET_PATTERN = r"<total>(\d*\.?\d+)</total>"
 
 
 def _load_dataset():

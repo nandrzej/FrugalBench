@@ -30,13 +30,13 @@ def json_extraction():
         text = state.output.completion
         try:
             parsed = _safe_parse(text)
-        except (json.JSONDecodeError, ValueError):
+        except (json.JSONDecodeError, ValueError, TypeError):
             return Score(value=0, answer=text, explanation="Invalid JSON")
 
         # Check required keys exist
         try:
             target_obj = _safe_parse(target.text)
-        except (json.JSONDecodeError, ValueError):
+        except (json.JSONDecodeError, ValueError, TypeError):
             return Score(value=0, answer=text, explanation="Invalid target JSON")
 
         score_val = 1.0

@@ -1,6 +1,7 @@
 """Task 14: PII Redaction — Identifying and replacing sensitive data with [REDACTED]."""
 
 import json
+import re
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
@@ -34,7 +35,10 @@ def redaction_scorer() -> Scorer:
                 explanation="No PII spans defined in target",
             )
 
-        redacted = sum(1 for span in pii_spans if span not in text)
+        redacted = sum(
+            1 for span in pii_spans
+            if not re.search(r'\b' + re.escape(span) + r'\b', text, re.IGNORECASE)
+        )
         recall = redacted / len(pii_spans)
 
         return Score(

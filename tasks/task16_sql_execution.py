@@ -28,8 +28,8 @@ def sql_executor() -> Solver:
         sql = sql_block.group(1).strip() if sql_block else text.strip().split(";")[0] + ";"
 
         sb = sandbox()
-        result = await sb.exec(["sqlite3", "/workspace/database.db", sql])
-        gold_result = await sb.exec(["sqlite3", "/workspace/database.db", state.target.text])
+        result = await sb.exec(["sqlite3", "/workspace/database.db", sql], timeout=30)
+        gold_result = await sb.exec(["sqlite3", "/workspace/database.db", state.target.text], timeout=30)
 
         state.metadata["sql_output"] = result.stdout.strip()
         state.metadata["expected_output"] = gold_result.stdout.strip()

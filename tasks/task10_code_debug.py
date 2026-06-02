@@ -73,7 +73,7 @@ def python_debugger() -> Solver:
         sb = sandbox()
         await sb.write_file("/workspace/solution.py", code)
         await sb.write_file("/workspace/run_tests.py", _TEST_SCRIPT)
-        result = await sb.exec(["python3", "/workspace/run_tests.py"])
+        result = await sb.exec(["python3", "/workspace/run_tests.py"], timeout=30)
 
         state.metadata["stdout"] = result.stdout
         state.metadata["code"] = code

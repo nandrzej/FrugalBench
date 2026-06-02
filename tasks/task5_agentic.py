@@ -28,7 +28,8 @@ def _get_dataset() -> list[Sample]:
 def agentic_scorer() -> Scorer:
     async def score(state: TaskState, target: Target) -> Score:
         sb = sandbox()
-        assert sb is not None, "No sandbox configured"
+        if sb is None:
+            raise RuntimeError("No sandbox configured")
 
         try:
             answer = await sb.read_file("/workspace/final_answer.txt", text=True)

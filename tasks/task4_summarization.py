@@ -6,7 +6,7 @@ from inspect_ai.model import GenerateConfig
 from inspect_ai.solver import generate, system_message
 
 from dataset import get_samples
-from scorers.modern_nli import modern_nli
+from scorers.nli_faithfulness import nli_faithfulness
 
 
 def _get_dataset() -> list[Sample]:
@@ -25,6 +25,6 @@ def task4_summarization() -> Task:
     return Task(
         dataset=_get_dataset(),
         solver=[system_message("You are a precise summarization assistant."), generate()],
-        scorer=modern_nli(threshold=0.6),
+        scorer=nli_faithfulness(threshold=0.6),
         config=GenerateConfig(temperature=0, seed=42),
     )

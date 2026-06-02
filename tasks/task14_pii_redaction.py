@@ -1,6 +1,6 @@
 """Task 14: PII Redaction — Identifying and replacing sensitive data with [REDACTED]."""
 
-import re
+import json
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
@@ -17,44 +17,30 @@ def _get_dataset() -> list[Sample]:
 
 @scorer(metrics=[accuracy()])
 def redaction_scorer() -> Scorer:
-    """Scorer that checks if the model properly redacted PII from its output."""
+    """Scorer that measures PII recall against ground-truth spans."""
     async def score(state: TaskState, target: Target) -> Score:
         text = state.output.completion
 
-        # PII patterns: Email, Name-like (John Doe), Phone (555-1234)
-        email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
-        phone_pattern = r"\b\d{3}-\d{4}\b"
+        try:
+            target_data = json.loads(target.text)
+            pii_spans = target_data.get("pii_spans", [])
+        except (json.JSONDecodeError, TypeError):
+            pii_spans = []
 
-        # Check if patterns are still present in the output
-        has_emails = bool(re.search(email_pattern, text))
-        has_phones = bool(re.search(phone_pattern, text))
-
-        # Must contain [REDACTED] or [PII] markers
-        has_redaction_marker = "[REDACTED]" in text or "[PII]" in text
-
-        # Final check: is any sensitive part from the input still present?
-        input_text = state.input
-        if isinstance(input_text, list):
-            input_text = " ".join([m.text for m in input_text])
-
-        original_sensitive_parts = []
-        for word in input_text.split():
-            if "@" in word or re.search(r"\b\d{3}-\d{4}\b", word):
-                original_sensitive_parts.append(word)
-
-        still_present = any(part in text for part in original_sensitive_parts)
-
-        score_val = 1.0 if (not has_emails and not has_phones and has_redaction_marker and not still_present) else 0.0
-
-        explanation = "PII correctly redacted" if score_val == 1.0 else (
-                f"Redaction failed: emails={has_emails}, phones={has_phones}, "
-                f"marker={has_redaction_marker}, present={still_present}"
+        if not pii_spans:
+            return Score(
+                value=0.0,
+                answer=text,
+                explanation="No PII spans defined in target",
             )
 
+        redacted = sum(1 for span in pii_spans if span not in text)
+        recall = redacted / len(pii_spans)
+
         return Score(
-            value=score_val,
+            value=recall,
             answer=text,
-            explanation=explanation,
+            explanation=f"PII recall: {redacted}/{len(pii_spans)} spans redacted",
         )
     return score
 

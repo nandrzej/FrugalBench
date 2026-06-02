@@ -1,7 +1,12 @@
 """Task 13: JSON Schema Enforcement — Validating nested objects against a strict schema."""
 
+# mypy: disable-error-code="no-untyped-def,explicit-any"
+
+import ast
 import json
 import re
+from difflib import SequenceMatcher
+from typing import Any
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
@@ -39,6 +44,35 @@ _NESTED_SCHEMA = {
     "required": ["name", "role", "company", "location", "contact"],
 }
 
+_SCHEMAS: dict[str, dict[str, Any]] = {
+    "person": _NESTED_SCHEMA,
+}
+
+
+def _field_match_ratio(extracted: dict[str, Any], expected: dict[str, Any]) -> float:
+    """Compare nested dicts, return ratio of matching leaf values."""
+    def _flatten(d: dict[str, Any], prefix: str = "") -> dict[str, str]:
+        items: dict[str, str] = {}
+        for k, v in d.items():
+            key = f"{prefix}.{k}" if prefix else k
+            if isinstance(v, dict):
+                items.update(_flatten(v, key))
+            else:
+                items[key] = str(v)
+        return items
+
+    flat_extracted = _flatten(extracted)
+    flat_expected = _flatten(expected)
+
+    if not flat_expected:
+        return 1.0
+
+    matches = sum(
+        1 for k, v in flat_expected.items()
+        if k in flat_extracted and SequenceMatcher(None, flat_extracted[k], v).ratio() > 0.9
+    )
+    return matches / len(flat_expected)
+
 
 def _get_dataset() -> list[Sample]:
     return get_samples(13)
@@ -46,36 +80,51 @@ def _get_dataset() -> list[Sample]:
 
 @scorer(metrics=[accuracy()])
 def schema_scorer() -> Scorer:
-    """Scorer that validates model output against a JSON Schema."""
     async def score(state: TaskState, target: Target) -> Score:
         text = state.output.completion
 
-        # Extract JSON from potential markdown blocks
         json_match = re.search(r"```(?:json)?\s*\n(.*?)\n```", text, re.DOTALL)
         if json_match:
             json_str = json_match.group(1).strip()
         else:
-            # Try finding the first '{' and last '}'
             start = text.find("{")
             end = text.rfind("}")
             json_str = text[start:end + 1] if start != -1 and end != -1 else text
 
+        target_text = target.text
+        schema_name = "person"
+        expected_data: dict[str, Any] = {}
+        if "|" in target_text:
+            prefix, rest = target_text.split("|", 1)
+            schema_name = prefix.replace("schema:", "").strip()
+            try:
+                expected_data = json.loads(rest)
+            except json.JSONDecodeError:
+                try:
+                    expected_data = ast.literal_eval(rest)
+                except (ValueError, SyntaxError):
+                    expected_data = {}
+
+        schema = _SCHEMAS.get(schema_name, _NESTED_SCHEMA)
+
         try:
             data = json.loads(json_str)
-            validate(instance=data, schema=_NESTED_SCHEMA)
-
-            # Additional check: compare field values (looser)
-            # The schema validation is the primary goal here for 8B models
-            score_val = 1.0
-            explanation = "Valid JSON against schema"
+            validate(instance=data, schema=schema)
+            schema_valid = 1.0
         except (json.JSONDecodeError, ValidationError) as e:
-            score_val = 0.0
-            explanation = f"Validation error: {e}"
+            return Score(
+                value=0.0,
+                answer=text,
+                explanation=f"schema_valid=0 | parse_error: {e}",
+            )
+
+        field_ratio = _field_match_ratio(data, expected_data) if expected_data else 1.0
+        composite = schema_valid * 0.4 + field_ratio * 0.6
 
         return Score(
-            value=score_val,
+            value=composite,
             answer=text,
-            explanation=explanation,
+            explanation=f"schema_valid=1.0 | field_match={field_ratio:.2f} | composite={composite:.2f}",
         )
     return score
 

@@ -9,6 +9,7 @@ dependencies = [
     "python-dotenv",
     "nltk",
     "sentence-transformers",
+    "torch>=2.0.0",
     "jsonschema",
     "openai",
     "fastapi>=0.115.0",
@@ -30,7 +31,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 py-modules = ["dataset"]
-packages = ["tasks", "scorers"]
+packages = ["tasks", "scorers", "server", "scripts", "sandbox", "sandbox.task16"]
 
 [tool.ruff]
 target-version = "py314"

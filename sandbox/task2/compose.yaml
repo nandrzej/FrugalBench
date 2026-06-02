@@ -11,8 +11,13 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512M
+      - /workspace:size=256M,mode=1777
+    cap_drop:
+      - ALL
+    mem_limit: 512M
+    cpus: "1"
+    ulimits:
+      nproc: 64
+      nofile:
+        soft: 128
+        hard: 256
